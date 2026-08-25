@@ -41,4 +41,16 @@ describe('Servicios', () => {
     expect(screen.getByText('Carga por ventanilla')).toBeInTheDocument()
     expect(screen.getByText('Ventanilla 5')).toBeInTheDocument()
   })
+
+  it('marca los servicios que se envían al MESCYT', () => {
+    montar()
+    const tabla = within(screen.getByRole('table'))
+    // 'Lista de Graduados' es uno de los servicios reales marcados para
+    // envío al MESCYT en la matriz institucional.
+    expect(tabla.getByLabelText('Lista de Graduados: se envía al MESCYT'))
+      .toBeInTheDocument()
+    // 'Récord de Notas Oficial' no está marcado: no debe llevar la marca.
+    expect(tabla.queryByLabelText('Récord de Notas Oficial: se envía al MESCYT'))
+      .not.toBeInTheDocument()
+  })
 })
