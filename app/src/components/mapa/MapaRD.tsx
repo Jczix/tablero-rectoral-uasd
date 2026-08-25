@@ -9,21 +9,30 @@ const RADIO_MIN = 7
 const RADIO_MAX = 26
 
 /**
- * Construye la función de radio a partir del rango real de pesos (matrícula
- * en miles) de las unidades territoriales que se están dibujando, en vez de
- * una fórmula fija: la raíz cuadrada del peso mínimo y máximo del padrón se
- * mapea linealmente a [RADIO_MIN, RADIO_MAX], así los 12 subcentros —cuyos
- * pesos van de 0.10 a 0.22— se distinguen entre sí en vez de quedar todos
- * aplastados contra un mínimo común.
+ * Construye la función de radio a partir del rango real de matrícula
+ * (estudiantes, no miles) de las unidades territoriales que se están
+ * dibujando, con una escala LOGARÍTMICA en vez de raíz cuadrada.
+ *
+ * La raíz cuadrada no basta: entre Sede Central (118 000 estudiantes) y el
+ * subcentro más pequeño (100) hay casi tres órdenes de magnitud, y bajo
+ * raíz cuadrada esa distancia sigue dominando tanto el rango que los 12
+ * subcentros —apretados entre 100 y 220 estudiantes— quedaban a menos de
+ * un pixel de diferencia entre sí (7.000 frente a 7.275), indistinguibles
+ * en pantalla pese a cumplir *técnicamente* "el mayor es mayor que el
+ * menor". El logaritmo comprime el extremo alto sin aplastar el bajo:
+ * `log1p` sobre el conteo real de estudiantes separa Pedernales (~7) de
+ * Verón Punta Cana (~9), y dentro de esa misma escala los centros (varios
+ * cientos a ~2 200 estudiantes) y los recintos (miles a decenas de miles)
+ * siguen quedando claramente por encima, con Sede Central en el techo.
  */
 function crearRadio(pesos: number[]) {
-  const raices = pesos.map(Math.sqrt)
-  const minRaiz = Math.min(...raices)
-  const maxRaiz = Math.max(...raices)
-  const rango = maxRaiz - minRaiz
+  const logs = pesos.map(p => Math.log1p(p * 1000))
+  const minLog = Math.min(...logs)
+  const maxLog = Math.max(...logs)
+  const rango = maxLog - minLog
   return (peso: number) => {
     if (rango === 0) return (RADIO_MIN + RADIO_MAX) / 2
-    const t = (Math.sqrt(peso) - minRaiz) / rango
+    const t = (Math.log1p(peso * 1000) - minLog) / rango
     return RADIO_MIN + t * (RADIO_MAX - RADIO_MIN)
   }
 }
