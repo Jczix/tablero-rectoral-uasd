@@ -18,7 +18,10 @@
 - Umbrales de semáforo: `verde` si cumplimiento ≥ 95%, `ambar` si ≥ 80%, `rojo` si < 80%.
 - Semilla global fija: `SEMILLA_GLOBAL = 20260825`.
 - Todo commit en español, imperativo, sin prefijos de tipo (`Añade el padrón de unidades`, no `feat: add ...`).
-- Ningún archivo de `src/` debe superar las **250 líneas**. Si crece, se divide.
+- Ningún archivo de `src/` **con lógica** debe superar las **400 líneas**. Si crece, se divide.
+  Los archivos de **datos puros** (`mock/unidades.ts`, `mock/catalogo.ts`, `mock/servicios.ts`,
+  `mapa-rd.ts`) están **exentos** del límite: partir una lista de datos no la hace más
+  entendible, solo la esconde. La exención se pierde si el archivo incorpora lógica.
 - Contraste mínimo AA para lectura a distancia; tamaño de fuente base 16px, KPIs mayores ≥ 48px.
 
 ---
@@ -433,7 +436,7 @@ Expected: FAIL — `Failed to resolve import "./unidades"`
 
 - [ ] **Step 4: Implementar el padrón**
 
-`app/src/data/mock/unidades.ts`. Construir con ayudantes para que el archivo quede bajo 250 líneas:
+`app/src/data/mock/unidades.ts`. Construir con ayudantes para que la estructura se lea de un vistazo (el archivo está exento del límite de líneas por ser datos puros):
 
 ```ts
 import type { Unidad, NivelInfo, NivelId, TipoUnidad } from '../tipos'
@@ -991,7 +994,7 @@ export const indicadoresDe = (unidadId: string): Indicador[] =>
   porUnidad.get(unidadId) ?? []
 ```
 
-> Si `catalogo.ts` supera 250 líneas por la cantidad de textos, mover los conjuntos a `catalogo-textos.ts` y dejar en `catalogo.ts` únicamente la lógica de construcción.
+> `catalogo.ts` está exento del límite de líneas por ser un archivo de datos. Aun así, si la lógica de construcción se vuelve difícil de encontrar entre los textos, mover los conjuntos a `catalogo-textos.ts` y dejar aquí solo la construcción.
 
 - [ ] **Step 8: Ejecutar y verificar que pasa**
 
