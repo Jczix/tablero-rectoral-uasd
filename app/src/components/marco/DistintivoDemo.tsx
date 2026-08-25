@@ -16,6 +16,22 @@ export function DistintivoDemo() {
 
   useEffect(() => {
     const alTeclado = (e: KeyboardEvent) => {
+      // Igual que en `Rotador.tsx`: dentro de la barra de filtros el
+      // Rector puede estar escribiendo en un desplegable buscable
+      // ("Educación", "Facultad de...", "Administrativa" — casi cualquier
+      // nombre del padrón lleva una "d"), y ninguna tecla ahí debe
+      // interpretarse como atajo del tablero. Se añade además la regla
+      // general de ignorar cualquier campo de texto/edición, no solo la
+      // barra de filtros, para cubrir campos futuros sin tener que volver
+      // a tocar este componente.
+      const objetivo = e.target instanceof Element ? e.target : null
+      const dentroDeFiltros = objetivo?.closest('[data-barra-filtros]') != null
+      const enCampoDeTexto = objetivo instanceof HTMLElement && (
+        objetivo.tagName === 'INPUT' ||
+        objetivo.tagName === 'TEXTAREA' ||
+        objetivo.isContentEditable
+      )
+      if (dentroDeFiltros || enCampoDeTexto) return
       if (e.key.toLowerCase() === 'd') setVisible(v => !v)
     }
     window.addEventListener('keydown', alTeclado)
