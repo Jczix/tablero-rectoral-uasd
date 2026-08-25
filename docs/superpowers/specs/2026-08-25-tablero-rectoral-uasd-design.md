@@ -27,9 +27,9 @@ El objetivo de este MVP **no** es reportar datos reales. Es demostrar, con datos
 
 | Archivo | Aporte al diseño |
 |---|---|
-| `INDICADORES.docx` | Catálogo textual de indicadores para ~95 unidades: Rectoría, 4 Vicerrectorías, 9 Facultades, ~55 Escuelas, 13 Direcciones Generales, 13 Direcciones Operativas. Cada una con 10 indicadores de Servicio y 10 de Proceso. |
+| `INDICADORES.docx` | Catálogo textual de indicadores para ~95 unidades: Rectoría, 4 Vicerrectorías, 9 Facultades, 52 Escuelas, 13 Direcciones Generales, 13 Direcciones Operativas. Cada una con 10 indicadores de Servicio y 10 de Proceso. |
 | `INDICADORES 2 - RECINTOS UNIVERSITARIOS.docx` | Set propio para los 4 Recintos (Santiago, San Francisco de Macorís, Barahona, San Juan) y un set común aplicable a cada Centro y cada Subcentro. |
-| `Lista de Unidades Organizacionales 21082026.xlsx` | Padrón depurado: 4 recintos, 21 centros, 13 subcentros, 9 facultades, 65 escuelas con su facultad padre. Es la fuente autoritativa del árbol. |
+| `Lista de Unidades Organizacionales 21082026.xlsx` | Padrón depurado: 4 recintos, 18 centros, 13 subcentros, 9 facultades, 52 escuelas con su facultad padre. Neyba figura duplicado como Centro y como Subcentro: se resuelve tratandolo como Centro y retirandolo de Subcentros, pendiente de confirmar con la UASD. Es la fuente autoritativa del árbol. |
 | `Lista de Servicios 21082026.xlsx` | Catálogo real de servicios de Registro Universitario con nombre, descripción, costo en RD$ y US$, ventanilla asignada, requisitos y destino MESCYT. Base de la vista de Servicios. |
 | `organigrama-general.pdf`, `Estatuto_organico_uasd_vigente.pdf` | Validación de la estructura formal y de los 10 niveles. |
 
@@ -158,7 +158,7 @@ La vista por defecto y el ancla de la demostración.
 
 - **Encabezado:** escudo de la UASD, título institucional, fecha y hora en vivo, período académico activo.
 - **Fila de KPI mayores:** matrícula total, nuevo ingreso, egresados del año, ejecución presupuestaria, cumplimiento del POA institucional, satisfacción de usuarios. Cada uno con valor, meta, tendencia y semáforo.
-- **Mapa de la República Dominicana:** la red territorial completa — sede, 4 recintos, 21 centros, 13 subcentros. Puntos dimensionados por matrícula y coloreados por semáforo. Es el mayor golpe visual del tablero.
+- **Mapa de la República Dominicana:** la red territorial completa — sede, 4 recintos, 18 centros, 12 subcentros. Puntos dimensionados por matrícula y coloreados por semáforo. Es el mayor golpe visual del tablero.
 - **Semáforo de Vicerrectorías:** cuatro tarjetas con porcentaje de cumplimiento agregado.
 - **Rankings:** cinco unidades de mejor desempeño y cinco en alerta.
 - **Feed de actividad institucional:** franja de eventos recientes que corre en vivo.
