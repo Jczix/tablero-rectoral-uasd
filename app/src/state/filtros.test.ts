@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { FILTRO_INICIAL, reducir, chipsDe, type EstadoFiltros } from './filtros'
+import { FILTRO_INICIAL, MAXIMO_HISTORIAL, reducir, chipsDe, type EstadoFiltros } from './filtros'
 
 const inicial: EstadoFiltros = { actual: FILTRO_INICIAL, historial: [] }
 
@@ -89,6 +89,72 @@ describe('reducir', () => {
     expect(e.actual.areaId).toBeNull()
     expect(e.actual.unidadId).toBeNull()
     expect(e.actual.nivel).toBe(12)
+  })
+
+  it('quitar el nivel también limpia área y unidad', () => {
+    let e = reducir(inicial, { tipo: 'seleccionarUnidad', valor: 'esc-medicina' })
+    e = reducir(e, { tipo: 'quitar', valor: 'nivel' })
+    expect(e.actual.nivel).toBeNull()
+    expect(e.actual.areaId).toBeNull()
+    expect(e.actual.unidadId).toBeNull()
+  })
+
+  it('seleccionar una unidad inexistente no cambia el filtro ni apila historial', () => {
+    const e = reducir(inicial, { tipo: 'seleccionarUnidad', valor: 'no-existe' })
+    expect(e.actual).toEqual(FILTRO_INICIAL)
+    expect(e.historial).toEqual([])
+  })
+
+  it('el área no acepta un id que no sea de facultad o vicerrectoría', () => {
+    let e = reducir(inicial, { tipo: 'nivel', valor: 12 })
+    e = reducir(e, { tipo: 'area', valor: 'fac-salud' })
+    const antes = e.actual
+    const historialAntes = e.historial.length
+    e = reducir(e, { tipo: 'area', valor: 'recinto-santiago' })
+    expect(e.actual).toEqual(antes)
+    expect(e.historial).toHaveLength(historialAntes)
+  })
+
+  it('el área no acepta un id inexistente', () => {
+    let e = reducir(inicial, { tipo: 'nivel', valor: 12 })
+    e = reducir(e, { tipo: 'area', valor: 'fac-salud' })
+    const antes = e.actual
+    e = reducir(e, { tipo: 'area', valor: 'no-existe' })
+    expect(e.actual).toEqual(antes)
+  })
+
+  it('la acción unidad normaliza nivel y área según la unidad recibida', () => {
+    let e = reducir(inicial, { tipo: 'nivel', valor: 12 })
+    e = reducir(e, { tipo: 'area', valor: 'fac-salud' })
+    e = reducir(e, { tipo: 'unidad', valor: 'esc-medicina' })
+    // esc-biologia cuelga de fac-ciencias, no de fac-salud: la cascada debe
+    // recalcularse en vez de quedar en un estado incoherente.
+    e = reducir(e, { tipo: 'unidad', valor: 'esc-biologia' })
+    expect(e.actual.unidadId).toBe('esc-biologia')
+    expect(e.actual.areaId).toBe('fac-ciencias')
+    expect(e.actual.nivel).toBe(12)
+  })
+
+  it('la acción unidad con un id inexistente no cambia el filtro ni apila historial', () => {
+    let e = reducir(inicial, { tipo: 'nivel', valor: 12 })
+    e = reducir(e, { tipo: 'area', valor: 'fac-salud' })
+    const antes = e.actual
+    const historialAntes = e.historial.length
+    e = reducir(e, { tipo: 'unidad', valor: 'no-existe' })
+    expect(e.actual).toEqual(antes)
+    expect(e.historial).toHaveLength(historialAntes)
+  })
+
+  it('el historial no crece más allá de las últimas entradas permitidas', () => {
+    let e: EstadoFiltros = inicial
+    for (let i = 0; i < MAXIMO_HISTORIAL + 10; i++) {
+      e = reducir(e, { tipo: 'nivel', valor: i % 2 === 0 ? 6 : 7 })
+    }
+    expect(e.historial).toHaveLength(MAXIMO_HISTORIAL)
+    const nivelAntesDeAtras = e.actual.nivel
+    e = reducir(e, { tipo: 'atras' })
+    expect(e.actual.nivel).not.toBe(nivelAntesDeAtras)
+    expect(e.historial).toHaveLength(MAXIMO_HISTORIAL - 1)
   })
 })
 

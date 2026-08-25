@@ -23,10 +23,32 @@ export type Accion =
   | { tipo: 'atras' }
   | { tipo: 'limpiar' }
 
-const apilar = (e: EstadoFiltros, actual: Filtro): EstadoFiltros =>
-  ({ actual, historial: [...e.historial, e.actual] })
+/** Tope del historial: el tablero corre en modo kiosco durante días sin
+ * recargar, así que el historial no puede crecer sin límite. */
+export const MAXIMO_HISTORIAL = 50
 
-/** Reconstruye nivel y área a partir de una unidad seleccionada por clic. */
+const igualFiltro = (a: Filtro, b: Filtro): boolean =>
+  a.nivel === b.nivel && a.areaId === b.areaId && a.unidadId === b.unidadId &&
+  a.periodo === b.periodo && a.categoria === b.categoria && a.estado === b.estado
+
+const apilar = (e: EstadoFiltros, actual: Filtro): EstadoFiltros => {
+  const historial = [...e.historial, e.actual]
+  return {
+    actual,
+    historial: historial.length > MAXIMO_HISTORIAL
+      ? historial.slice(-MAXIMO_HISTORIAL) : historial,
+  }
+}
+
+/** Aplica el filtro resultante, pero solo si cambió algo: una acción que no
+ * altera el estado (id inexistente, valor inválido) no debe apilar una
+ * entrada fantasma en el historial. */
+const aplicar = (e: EstadoFiltros, nuevo: Filtro): EstadoFiltros =>
+  igualFiltro(e.actual, nuevo) ? e : apilar(e, nuevo)
+
+/** Reconstruye nivel y área a partir de una unidad seleccionada por clic (o
+ * asignada por el desplegable de unidad, que reutiliza esta misma lógica
+ * para no quedar en una combinación nivel/área/unidad incoherente). */
 function desdeUnidad(f: Filtro, unidadId: string): Filtro {
   const u = porId(unidadId)
   if (!u) return f
@@ -35,6 +57,24 @@ function desdeUnidad(f: Filtro, unidadId: string): Filtro {
   const areaId = padre && ['facultad', 'vicerrectoria'].includes(padre.tipo)
     ? padre.id : null
   return { ...f, nivel: u.nivel, areaId, unidadId }
+}
+
+/** El desplegable de área solo puede apuntar a una facultad o una
+ * vicerrectoría: cualquier otro id (inexistente o de otro tipo) se ignora
+ * en vez de dejar el filtro en una combinación que no resuelve nada. */
+function conArea(f: Filtro, areaId: string | null): Filtro {
+  if (areaId === null) return { ...f, areaId: null, unidadId: null }
+  const a = porId(areaId)
+  if (!a || !['facultad', 'vicerrectoria'].includes(a.tipo)) return f
+  return { ...f, areaId, unidadId: null }
+}
+
+/** La unidad del desplegable debe seguir siendo consistente con nivel y
+ * área: se reutiliza `desdeUnidad` para recalcular ambos en vez de asignar
+ * la unidad a ciegas. */
+function conUnidad(f: Filtro, unidadId: string | null): Filtro {
+  if (unidadId === null) return { ...f, unidadId: null }
+  return desdeUnidad(f, unidadId)
 }
 
 function quitar(f: Filtro, clave: ClaveFiltro): Filtro {
@@ -52,21 +92,21 @@ export function reducir(e: EstadoFiltros, a: Accion): EstadoFiltros {
   const f = e.actual
   switch (a.tipo) {
     case 'nivel':
-      return apilar(e, { ...f, nivel: a.valor, areaId: null, unidadId: null })
+      return aplicar(e, { ...f, nivel: a.valor, areaId: null, unidadId: null })
     case 'area':
-      return apilar(e, { ...f, areaId: a.valor, unidadId: null })
+      return aplicar(e, conArea(f, a.valor))
     case 'unidad':
-      return apilar(e, { ...f, unidadId: a.valor })
+      return aplicar(e, conUnidad(f, a.valor))
     case 'periodo':
-      return apilar(e, { ...f, periodo: a.valor })
+      return aplicar(e, { ...f, periodo: a.valor })
     case 'categoria':
-      return apilar(e, { ...f, categoria: a.valor })
+      return aplicar(e, { ...f, categoria: a.valor })
     case 'estado':
-      return apilar(e, { ...f, estado: a.valor })
+      return aplicar(e, { ...f, estado: a.valor })
     case 'seleccionarUnidad':
-      return apilar(e, desdeUnidad(f, a.valor))
+      return aplicar(e, desdeUnidad(f, a.valor))
     case 'quitar':
-      return apilar(e, quitar(f, a.valor))
+      return aplicar(e, quitar(f, a.valor))
     case 'atras':
       return e.historial.length
         ? { actual: e.historial.at(-1)!, historial: e.historial.slice(0, -1) }
