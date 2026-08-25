@@ -4,9 +4,16 @@ import { Rectoral } from './Rectoral'
 import { Nivel } from './Nivel'
 import { Unidad } from './Unidad'
 import { Territorial } from './Territorial'
+import { Servicios } from './Servicios'
 
 export function Enrutador() {
   const { filtro } = useFiltros()
+
+  // Dirección de Registro es el argumento central de la presentación al
+  // Rector (catálogo, costos y ventanillas reales de la matriz institucional
+  // de servicios): tiene su propia vista y va antes que la comprobación
+  // genérica de unidad hoja, que si no la llevaría a <Unidad />.
+  if (filtro.unidadId === 'dir-registro') return <Servicios />
 
   if (filtro.unidadId) {
     // Una unidad sin descendencia es una hoja: se muestran sus indicadores.
