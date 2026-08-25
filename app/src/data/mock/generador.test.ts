@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
 import { generarSerie, clasificar } from './generador'
 import { INDICADORES } from './catalogo'
+import { fijarAhora } from '../reloj'
 
 describe('clasificar', () => {
   it('aplica los umbrales de semáforo', () => {
@@ -13,6 +14,34 @@ describe('clasificar', () => {
 })
 
 describe('generarSerie', () => {
+  afterEach(() => fijarAhora(null))
+
+  it('no recalcula un mes de calendario ya generado cuando el reloj avanza (regresión)', () => {
+    // El bug: la deriva y el ruido se indexaban por posición dentro de la
+    // ventana de 24 meses, no por mes de calendario. Al desplazarse la
+    // ventana un mes, el mismo período pasaba de posición 23 a posición 22
+    // y su valor cambiaba solo, aunque el mes ya "hubiera pasado".
+    fijarAhora(new Date('2026-08-01T00:00:00Z'))
+    const conAgosto = generarSerie('dir-registro::servicio::1')
+
+    fijarAhora(new Date('2026-09-01T00:00:00Z'))
+    const conSeptiembre = generarSerie('dir-registro::servicio::1')
+
+    const porPeriodo = new Map(conSeptiembre.map(p => [p.periodo, p]))
+    for (const p of conAgosto) {
+      const otro = porPeriodo.get(p.periodo)
+      if (!otro) continue // el período más antiguo sale de la ventana de septiembre
+      expect(otro.valor, p.periodo).toBe(p.valor)
+      expect(otro.meta, p.periodo).toBe(p.meta)
+      expect(otro.cumplimiento, p.periodo).toBeCloseTo(p.cumplimiento, 9)
+      expect(otro.semaforo, p.periodo).toBe(p.semaforo)
+    }
+    // Verificación de que la superposición no está vacía (si lo estuviera,
+    // el test anterior pasaría trivialmente sin comprobar nada).
+    expect(porPeriodo.size).toBeGreaterThan(0)
+    expect(conAgosto.some(p => porPeriodo.has(p.periodo))).toBe(true)
+  })
+
   it('es determinística entre llamadas', () => {
     const a = generarSerie('dir-registro::servicio::1')
     const b = generarSerie('dir-registro::servicio::1')

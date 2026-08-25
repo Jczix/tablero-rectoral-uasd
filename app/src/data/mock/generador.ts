@@ -22,6 +22,14 @@ const BANDAS: [number, [number, number]][] = [
 const bandaDe = (r: number): [number, number] =>
   BANDAS.find(([tope]) => r < tope)![1]
 
+/** Meta de un indicador `porcentaje` cuando menor es mejor (p. ej. "% de
+ *  quejas sin resolver"). Debe ser lo bastante baja para que, incluso en el
+ *  peor caso de la banda roja (cump = 58, el mínimo de `BANDAS`),
+ *  `meta * 100 / cump` no supere 100: de lo contrario el recorte a 100
+ *  rompería la correspondencia entre la banda sorteada y el cumplimiento
+ *  resultante, sesgando la distribución de semáforos. */
+const META_PORCENTAJE_MENOR_MEJOR = 15
+
 /** Estacionalidad académica: picos en inscripción, valle en julio. */
 const ESTACIONAL = [1.02, 0.98, 1.00, 1.01, 1.03, 0.95,
                     0.82, 1.18, 1.12, 1.00, 0.99, 0.94]
@@ -44,13 +52,36 @@ const periodosHasta = (fin: Date, meses: number): string[] => {
   return salida
 }
 
+/** Época fija: origen del índice mensual absoluto que alimenta la deriva.
+ *  Ancla la tendencia al calendario en vez de a la posición dentro de la
+ *  ventana de 24 meses, para que un mes ya generado no cambie de valor
+ *  cuando `ahora()` avanza y la ventana se desplaza. */
+const EPOCA_ANIO = 2020
+
+/** Índice de mes absoluto desde la época: estable sin importar qué ventana
+ *  de 24 meses lo contenga. */
+const mesAbsoluto = (periodo: string): number => {
+  const anio = Number(periodo.slice(0, 4))
+  const mes = Number(periodo.slice(5, 7))
+  return (anio - EPOCA_ANIO) * 12 + mes
+}
+
 const indice = new Map(INDICADORES.map(i => [i.id, i]))
+
+/** Cumplimiento porcentual respetando la dirección del indicador. */
+const cumplimientoDe = (ind: Indicador, valor: number, meta: number): number =>
+  ind.direccion === 'menor-mejor'
+    ? (meta / Math.max(valor, 0.1)) * 100
+    : (valor / meta) * 100
 
 export function generarSerie(indicadorId: string, meses = 24): PuntoSerie[] {
   const ind = indice.get(indicadorId)
   if (!ind) return []
   const peso = porId(ind.unidadId)?.peso ?? 1
 
+  // PRNG del indicador: sortea la banda de cumplimiento (única llamada,
+  // siempre la primera) y la magnitud base. Nada de esto depende de cuántos
+  // meses tenga la ventana ni de en qué orden se recorran.
   const r = mulberry32(hashSemilla(indicadorId) ^ SEMILLA_GLOBAL)
   const [minCump, maxCump] = bandaDe(r())
   const base = magnitudBase(ind, peso, r)
@@ -59,23 +90,30 @@ export function generarSerie(indicadorId: string, meses = 24): PuntoSerie[] {
   const periodos = periodosHasta(ahora(), meses)
   const puntos: PuntoSerie[] = []
 
-  for (let k = 0; k < periodos.length; k++) {
-    const mes = Number(periodos[k].slice(5)) - 1
-    const ruido = 0.94 + r() * 0.12
-    const factor = (1 + deriva * k) * ESTACIONAL[mes] * ruido
+  for (const periodo of periodos) {
+    const mes = Number(periodo.slice(5, 7)) - 1
+    const kAbs = mesAbsoluto(periodo)
+
+    // PRNG por punto: sembrado con el período de calendario, no con la
+    // posición dentro de la ventana. El mismo mes produce el mismo ruido y
+    // el mismo cumplimiento sin importar qué ventana de 24 meses lo genere.
+    const rp = mulberry32(hashSemilla(`${indicadorId}|${periodo}`))
+    const ruido = 0.94 + rp() * 0.12
+    const factor = (1 + deriva * kAbs) * ESTACIONAL[mes] * ruido
+    const cump = minCump + rp() * (maxCump - minCump)
 
     let valor: number, meta: number
     if (ind.tipoMetrica === 'porcentaje') {
-      meta = 90
-      const cump = minCump + r() * (maxCump - minCump)
-      valor = Math.min(100, Math.max(0, (meta * cump) / 100))
+      meta = ind.direccion === 'menor-mejor' ? META_PORCENTAJE_MENOR_MEJOR : 90
+      valor = ind.direccion === 'menor-mejor'
+        ? (meta * 100) / cump
+        : (meta * cump) / 100
+      valor = Math.min(100, Math.max(0, valor))
     } else if (ind.direccion === 'menor-mejor') {
       meta = base
-      const cump = minCump + r() * (maxCump - minCump)
       valor = Math.max(0.1, (meta * 100) / cump)
     } else {
       meta = base * factor
-      const cump = minCump + r() * (maxCump - minCump)
       valor = Math.max(0, (meta * cump) / 100)
     }
 
@@ -84,16 +122,14 @@ export function generarSerie(indicadorId: string, meses = 24): PuntoSerie[] {
     valor = redondear(valor)
     meta = redondear(meta)
 
-    const cumplimiento = ind.direccion === 'menor-mejor'
-      ? (meta / Math.max(valor, 0.1)) * 100
-      : (valor / meta) * 100
+    const cumplimiento = cumplimientoDe(ind, valor, meta)
 
     const previo = puntos.at(-1)
     const delta = previo ? (valor - previo.valor) / Math.max(previo.valor, 0.1) : 0
     const tendencia = delta > 0.02 ? 'alza' : delta < -0.02 ? 'baja' : 'estable'
 
     puntos.push({
-      indicadorId, periodo: periodos[k], valor, meta,
+      indicadorId, periodo, valor, meta,
       cumplimiento, semaforo: clasificar(cumplimiento), tendencia,
     })
   }
