@@ -121,6 +121,26 @@ describe('Rotador', () => {
     expect(screen.getByText('Área / Dependencia')).toBeInTheDocument()
   })
 
+  it('reanudar con K cancela el temporizador de inactividad pendiente, sin saltos espontáneos', () => {
+    vi.useFakeTimers()
+    montar()
+    // Se detiene, pasa un minuto (el temporizador de 3 minutos sigue
+    // corriendo) y se reanuda con K.
+    act(() => { fireEvent.mouseMove(window) })
+    act(() => { vi.advanceTimersByTime(60_000) })
+    act(() => { fireEvent.keyDown(window, { key: 'k' }) })
+    expect(screen.getByRole('progressbar')).toBeInTheDocument()
+    // Se deja correr el reloj hasta justo pasado el instante en que
+    // vencía el temporizador original (2 minutos más desde la
+    // reanudación = 3 minutos desde la detención). Sin el arreglo, ese
+    // temporizador huérfano dispara `reanudar()` de nuevo y el kiosco
+    // salta solo de vuelta a la portada en mitad de una rotación ya en
+    // marcha, sin que nadie haya interactuado.
+    act(() => { vi.advanceTimersByTime(120_000 + 1) })
+    expect(screen.getByRole('progressbar'))
+      .toHaveAttribute('aria-label', 'Vista 5 de 7')
+  })
+
   it('las paradas automáticas del kiosco no apilan historial', () => {
     vi.useFakeTimers()
     montar()

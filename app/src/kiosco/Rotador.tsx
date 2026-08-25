@@ -66,16 +66,30 @@ export function Rotador() {
   // Toma de control, reanudación manual y reanudación automática por
   // inactividad.
   useEffect(() => {
-    const reanudar = () => { setPaso(0); cambiarRotando(true) }
+    const limpiarTemporizadorInactividad = () => {
+      if (temporizadorInactividadRef.current) {
+        clearTimeout(temporizadorInactividadRef.current)
+        temporizadorInactividadRef.current = null
+      }
+    }
+
+    // Único punto de reanudación (tecla K o vencimiento de inactividad):
+    // si quedara un temporizador pendiente de una detención anterior, hay
+    // que cancelarlo aquí. Si no, dispararía más tarde sin que nadie
+    // interactuara y el kiosco saltaría solo de vuelta a la portada en
+    // mitad de una rotación ya reanudada — el propio bug que se está
+    // corrigiendo.
+    const reanudar = () => {
+      limpiarTemporizadorInactividad()
+      setPaso(0)
+      cambiarRotando(true)
+    }
 
     // Reinicia el plazo de inactividad cada vez que hay una interacción
     // mientras el kiosco está detenido; si vuelve a rotar, no hace falta
     // temporizador alguno.
     const programarReanudacionPorInactividad = () => {
-      if (temporizadorInactividadRef.current) {
-        clearTimeout(temporizadorInactividadRef.current)
-        temporizadorInactividadRef.current = null
-      }
+      limpiarTemporizadorInactividad()
       if (!rotandoRef.current) {
         temporizadorInactividadRef.current = setTimeout(reanudar, REANUDAR_INACTIVIDAD_MS)
       }
@@ -129,8 +143,11 @@ export function Rotador() {
       ) : (
         <>
           {/* Sin esta señal, nadie que no conozca el atajo sabría cómo
-             devolver la pantalla a su rotación automática. */}
-          <div className="bg-uasd-azul-claro/10 px-6 py-1 text-center text-xs
+             devolver la pantalla a su rotación automática. En texto-xs
+             era ilegible a la distancia de un TV de pared: es la única
+             instrucción para salir del modo manual, así que necesita el
+             tamaño de algo que se va a leer, no el de una nota al pie. */}
+          <div className="bg-uasd-azul-claro/10 px-6 py-2 text-center text-lg
             font-medium uppercase tracking-wide text-uasd-azul-claro">
             Modo manual · pulse K para reanudar
           </div>
