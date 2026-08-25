@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ProveedorFiltros, useFiltros } from '../state/FiltrosContext'
 import { Rectoral } from './Rectoral'
@@ -58,5 +58,41 @@ describe('Rectoral', () => {
     montar()
     expect(screen.getByRole('group', { name: 'Red territorial de la UASD' }))
       .toBeInTheDocument()
+  })
+
+  // --- Corrección de hallazgos de revisión: la portada no cabía en 1080px ---
+  //
+  // jsdom no calcula layout CSS real (no hay box model, ni flex ni grid): no
+  // puede medir un `scrollHeight` de verdad, así que esta prueba no puede
+  // repetir la medición pixel a pixel. Esa medición se hizo en un navegador
+  // real a 1920×1080 (ver la sección de corrección del informe de la Tarea
+  // 10): antes, scrollHeight daba 1236px contra 1080 disponibles y los tres
+  // últimos puestos de cada ranking quedaban fuera de pantalla; después de
+  // este cambio, scrollHeight da exactamente 1080, sin desplazamiento, y
+  // ningún contenedor interno (mapa, feed, rankings) queda recortado.
+  //
+  // Lo que SÍ puede fijar esta prueba, y por lo que es una guarda real
+  // contra la regresión, son los tres cambios estructurales que hicieron
+  // posible ese resultado: el contenedor raíz no crece sin límite
+  // (`overflow-hidden`), y los rankings y el feed muestran una cantidad
+  // acotada de elementos en vez de la que quepa.
+  it('el contenedor raíz no crece sin límite: overflow-hidden ancla la portada a su contenedor', () => {
+    montar()
+    expect(screen.getByTestId('portada-rectoral')).toHaveClass('overflow-hidden')
+  })
+
+  it('cada ranking muestra cuatro puestos, no cinco, para caber en 1080px de alto', () => {
+    montar()
+    const mejores = within(screen.getByTestId('Mejor desempeño')).getAllByRole('listitem')
+    const enAlerta = within(screen.getByTestId('Requieren atención')).getAllByRole('listitem')
+    expect(mejores).toHaveLength(4)
+    expect(enAlerta).toHaveLength(4)
+  })
+
+  it('el feed muestra seis eventos, no ocho, para caber en 1080px de alto', () => {
+    fijarAhora(new Date('2026-08-25T14:30:00Z'))
+    montar()
+    const eventos = within(screen.getByTestId('feed-actividad')).getAllByRole('listitem')
+    expect(eventos).toHaveLength(6)
   })
 })

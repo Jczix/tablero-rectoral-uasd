@@ -12,6 +12,44 @@ export function clasificar(cumplimiento: number): Semaforo {
   return 'rojo'
 }
 
+/**
+ * Porcentaje de una lista de semáforos (típicamente los últimos puntos de
+ * los indicadores de una unidad) que está en meta (verde). Es la métrica de
+ * desempeño de una UNIDAD, deliberadamente distinta de `clasificar`: el
+ * cumplimiento medio de una unidad se apiña entre 70 y 95 (media 84.6, la
+ * cifra ancla institucional) porque los cumplimientos individuales ya están
+ * centrados alrededor de 100 por construcción, así que promediarlos jamás
+ * produce una unidad por debajo de 40. Contar cuántos indicadores están en
+ * meta, en cambio, sí distingue una unidad con 15 de 20 indicadores sanos
+ * de una con solo 8: la primera da 75, la segunda 40, un rango que sí
+ * separa "buen desempeño" de "requiere atención" en vez de apiñarlos.
+ */
+export function porcentajeEnMeta(semaforos: Semaforo[]): number {
+  if (!semaforos.length) return 0
+  return (semaforos.filter(s => s === 'verde').length / semaforos.length) * 100
+}
+
+/**
+ * Clasificación de una UNIDAD según `porcentajeEnMeta`, no la de un
+ * indicador individual: no puede reutilizar `clasificar` porque esa función
+ * calibra 95/80 contra la escala 70/20/10 de un cumplimiento individual
+ * (ver `BANDAS` más abajo), y aplicar esos mismos umbrales al porcentaje de
+ * indicadores en meta dejaría casi todo en rojo (los indicadores en meta
+ * son ~70% del catálogo, no ~95%).
+ *
+ * Umbrales 75/55 calibrados contra las 158 unidades del catálogo actual que
+ * tienen indicadores: con verde >= 75 y ámbar >= 55, la distribución
+ * resultante es 71 verde / 76 ámbar / 11 rojo (45% / 48% / 7%) — un reparto
+ * creíble, ni todo verde ni todo rojo, con un grupo de unidades realmente
+ * en problemas. Ver la sección de corrección del informe de la Tarea 10
+ * para la medición completa.
+ */
+export function clasificarUnidad(pctEnMeta: number): Semaforo {
+  if (pctEnMeta >= 75) return 'verde'
+  if (pctEnMeta >= 55) return 'ambar'
+  return 'rojo'
+}
+
 /** Bandas de cumplimiento objetivo, calibradas a 70 / 20 / 10. */
 const BANDAS: [number, [number, number]][] = [
   [0.70, [96, 118]],   // verde

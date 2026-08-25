@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import { generarSerie, clasificar } from './generador'
+import { generarSerie, clasificar, clasificarUnidad, porcentajeEnMeta } from './generador'
+import type { Semaforo } from '../tipos'
 import { INDICADORES } from './catalogo'
 import { fijarAhora } from '../reloj'
 
@@ -10,6 +11,34 @@ describe('clasificar', () => {
     expect(clasificar(94.9)).toBe('ambar')
     expect(clasificar(80)).toBe('ambar')
     expect(clasificar(79.9)).toBe('rojo')
+  })
+})
+
+describe('porcentajeEnMeta', () => {
+  const de = (verdes: number, total: number): Semaforo[] => [
+    ...Array(verdes).fill('verde' as Semaforo),
+    ...Array(total - verdes).fill('rojo' as Semaforo),
+  ]
+
+  it('una unidad con sus 20 indicadores en verde da 100', () => {
+    expect(porcentajeEnMeta(de(20, 20))).toBe(100)
+  })
+
+  it('una unidad con 10 de 20 indicadores en verde da 50', () => {
+    expect(porcentajeEnMeta(de(10, 20))).toBe(50)
+  })
+
+  it('una unidad sin indicadores da 0, no NaN', () => {
+    expect(porcentajeEnMeta([])).toBe(0)
+  })
+})
+
+describe('clasificarUnidad', () => {
+  it('aplica los umbrales 75/55, distintos de los de `clasificar`', () => {
+    expect(clasificarUnidad(75)).toBe('verde')
+    expect(clasificarUnidad(74.9)).toBe('ambar')
+    expect(clasificarUnidad(55)).toBe('ambar')
+    expect(clasificarUnidad(54.9)).toBe('rojo')
   })
 })
 

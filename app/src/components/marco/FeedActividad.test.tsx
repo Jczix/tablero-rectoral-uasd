@@ -24,11 +24,30 @@ describe('FeedActividad', () => {
   })
 
   it('incorpora un evento nuevo al cabo del intervalo', () => {
+    // Se compara la LISTA completa, no solo el primer elemento: el feed
+    // ahora ordena de más reciente a más antiguo (corrección de la Tarea
+    // 10), así que el puesto 0 es el evento con el desfase más pequeño
+    // dentro de la ventana de 6 horas, y no cambia garantizadamente en
+    // cada tic de 5s. El conjunto de 6 eventos sí se desplaza siempre
+    // (entra uno nuevo, sale el más antiguo), así que la lista completa es
+    // la comparación robusta.
     vi.useFakeTimers()
     fijarAhora(new Date('2026-08-25T14:30:00Z'))
     render(<FeedActividad />)
-    const antes = screen.getAllByRole('listitem')[0].textContent
+    const antes = screen.getAllByRole('listitem').map(i => i.textContent)
     act(() => { vi.advanceTimersByTime(6000) })
-    expect(screen.getAllByRole('listitem')[0].textContent).not.toBe(antes)
+    const despues = screen.getAllByRole('listitem').map(i => i.textContent)
+    expect(despues).not.toEqual(antes)
+  })
+
+  it('ordena los eventos de más reciente a más antiguo', () => {
+    fijarAhora(new Date('2026-08-25T14:30:00Z'))
+    render(<FeedActividad />)
+    const horas = screen.getAllByRole('listitem').map(i => {
+      const [, hh, mm] = i.textContent!.match(/(\d{2}):(\d{2})/)!
+      return Number(hh) * 60 + Number(mm)
+    })
+    const ordenadas = [...horas].sort((a, b) => b - a)
+    expect(horas).toEqual(ordenadas)
   })
 })

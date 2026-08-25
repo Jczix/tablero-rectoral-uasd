@@ -2,7 +2,7 @@ import type { DataSource, Filtro, FilaUnidad, ResumenAgregado } from '../source'
 import type { Unidad, Indicador, PuntoSerie, Semaforo } from '../tipos'
 import { UNIDADES, NIVELES, porId, hijosDe, puedeSerArea } from './unidades'
 import { INDICADORES, indicadoresDe } from './catalogo'
-import { generarSerie, clasificar } from './generador'
+import { generarSerie, clasificar, clasificarUnidad, porcentajeEnMeta } from './generador'
 
 /** Memoización: la serie de un indicador se calcula una sola vez. */
 const cacheSerie = new Map<string, PuntoSerie[]>()
@@ -51,19 +51,32 @@ function indicadoresFiltrados(unidadId: string, f: Filtro): Indicador[] {
   return ind
 }
 
+/**
+ * El desempeño de una unidad es el PORCENTAJE DE SUS INDICADORES EN META
+ * (verde), no el promedio de sus cumplimientos individuales. Promediar
+ * cumplimientos apiña a las 158 unidades del catálogo entre 89.5% y 106.9%
+ * (nunca por debajo de ~90 ni por encima de ~107, porque cada cumplimiento
+ * individual ya está centrado en 100 por construcción), y el panel
+ * "Requieren atención" terminaba mostrando unidades sanas al 89-93%. Contar
+ * cuántos indicadores están en meta sí separa una unidad con 15 de 20
+ * indicadores sanos (75, verde) de una con 8 de 20 (40, rojo). Ver
+ * `porcentajeEnMeta` y `clasificarUnidad` en `generador.ts`.
+ */
 function filaDe(u: Unidad, f: Filtro): FilaUnidad {
   const ind = indicadoresFiltrados(u.id, f)
   const ultimos = ind.map(i => serieDe(i.id).at(-1)!)
-  const cumplimiento = ind.length
-    ? ultimos.reduce((a, p) => a + p.cumplimiento, 0) / ind.length : 0
-  // Minigráfico: cumplimiento promedio de la unidad en los últimos 12 meses.
+  const cumplimiento = porcentajeEnMeta(ultimos.map(p => p.semaforo))
+  // Minigráfico: MISMA métrica que `cumplimiento` (% de indicadores en
+  // meta), mes a mes — no el promedio de cumplimiento de antes, que
+  // mezclaría dos escalas distintas en el mismo componente visual.
   const serie = Array.from({ length: 12 }, (_, k) => {
     const idx = 12 + k
-    const suma = ind.reduce((a, i) => a + (serieDe(i.id)[idx]?.cumplimiento ?? 0), 0)
-    return Math.round((suma / Math.max(ind.length, 1)) * 10) / 10
+    if (!ind.length) return 0
+    const semaforosMes = ind.map(i => serieDe(i.id)[idx].semaforo)
+    return Math.round(porcentajeEnMeta(semaforosMes) * 10) / 10
   })
   return {
-    unidad: u, cumplimiento, semaforo: clasificar(cumplimiento), serie,
+    unidad: u, cumplimiento, semaforo: clasificarUnidad(cumplimiento), serie,
     indicadoresEnRojo: ultimos.filter(p => p.semaforo === 'rojo').length,
   }
 }

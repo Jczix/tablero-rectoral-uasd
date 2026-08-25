@@ -6,10 +6,10 @@ import { Rectoral } from './vistas/Rectoral'
 export default function App() {
   return (
     <ProveedorFiltros>
-      <div className="flex min-h-screen flex-col bg-panel">
+      <div className="flex h-screen flex-col overflow-hidden bg-panel">
         <Encabezado />
         <BarraFiltros />
-        <main className="flex-1"><Rectoral /></main>
+        <main className="min-h-0 flex-1 overflow-hidden"><Rectoral /></main>
       </div>
     </ProveedorFiltros>
   )

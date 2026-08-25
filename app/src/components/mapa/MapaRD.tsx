@@ -54,7 +54,7 @@ export function MapaRD({ alto = '100%' }: { alto?: string | number }) {
         const atenuado = hayFoco && !activo
         const etiqueta =
           `${f.unidad.nombre}. ${formatearCompacto(f.unidad.peso * 1000)} estudiantes. ` +
-          `Cumplimiento ${formatear(f.cumplimiento, 'porcentaje')}.`
+          `${formatear(f.cumplimiento, 'porcentaje')} de sus indicadores en meta.`
 
         const activar = () => despachar({ tipo: 'seleccionarUnidad', valor: f.unidad.id })
         const alTeclado = (e: KeyboardEvent<SVGGElement>) => {
