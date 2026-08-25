@@ -26,14 +26,15 @@ describe('Enrutador', () => {
     expect(screen.getByText('Matrícula total')).toBeInTheDocument()
   })
 
-  it('con un nivel escogido muestra la rejilla de unidades', async () => {
+  it('con un nivel territorial (6, 7 u 8) muestra el mapa y la tabla', async () => {
+    // Desde la Tarea 12, los niveles territoriales (recintos/centros/
+    // subcentros) ya no usan la rejilla genérica de Nivel: usan Territorial
+    // (mapa + tabla comparativa de las 35 unidades). Ver Territorial.test.tsx
+    // para la cobertura detallada de esa vista.
     const usuario = montar({ tipo: 'nivel', valor: 6 })
     await usuario.click(screen.getByText('disparar'))
-    // El título lleva además un contador de unidades ("Recintos · 4
-    // unidades"), añadido en la corrección de la Tarea 11 para que la
-    // rejilla avise cuánto contenido hay aunque no quepa en pantalla.
-    expect(screen.getByRole('heading', { name: /^Recintos/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Recinto Barahona/ })).toBeInTheDocument()
+    expect(screen.getByRole('table')).toBeInTheDocument()
+    expect(screen.getByRole('row', { name: /Recinto Barahona/ })).toBeInTheDocument()
   })
 
   it('con una facultad muestra la rejilla de sus escuelas', async () => {
