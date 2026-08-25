@@ -22,21 +22,28 @@ describe('formatear', () => {
     expect(formatear(0, 'dias')).toBe('0.0 días')
   })
 
-  it('abrevia la moneda en millones y miles de millones', () => {
-    expect(formatear(14_800_000_000, 'moneda')).toBe('RD$ 14.80 MM')
+  it('expresa la moneda en millones, con "M" = millones y sin usar nunca "MM"', () => {
+    // El presupuesto institucional son 14,800 MILLONES de pesos. Con la
+    // notación anterior ("RD$ 14.80 MM") la portada anunciaba 14.8 millones,
+    // mil veces menos, porque en convención dominicana MM = millones.
+    expect(formatear(14_800_000_000, 'moneda')).toBe('RD$ 14,800 M')
     expect(formatear(3_400_000, 'moneda')).toBe('RD$ 3.4 M')
     expect(formatear(52_000, 'moneda')).toBe('RD$ 52,000')
   })
 
-  it('no anuncia mil millones cuando el valor redondea justo al límite', () => {
-    // Bordes de la frontera M/MM (1e9): el valor real está bajo mil
-    // millones, pero al redondear a un decimal de millones cae en 1000.0,
-    // así que debe subir de unidad en vez de mostrar "1000.0 M".
-    expect(formatear(999_999_999, 'moneda')).toBe('RD$ 1.00 MM')
-    expect(formatear(1_000_000_000, 'moneda')).toBe('RD$ 1.00 MM')
-    // Justo por debajo del punto de redondeo: no debe subir de unidad.
+  it('nunca emite la abreviatura ambigua "MM"', () => {
+    for (const v of [1e6, 3.4e6, 999_999_999, 1e9, 14.8e9, 1e12])
+      expect(formatear(v, 'moneda')).not.toContain('MM')
+  })
+
+  it('deja de usar decimales por encima de mil millones', () => {
+    // A partir de 1,000 millones el decimal no aporta y estorba en pantalla:
+    // se redondea a millones enteros con separador de miles.
+    expect(formatear(999_999_999, 'moneda')).toBe('RD$ 1,000 M')
+    expect(formatear(1_000_000_000, 'moneda')).toBe('RD$ 1,000 M')
+    // Justo por debajo del punto de redondeo: conserva el decimal.
     expect(formatear(999_949_999, 'moneda')).toBe('RD$ 999.9 M')
-    // Bordes de la frontera miles/M (1e6), sin el bug de redondeo doble.
+    // Borde de la frontera miles/M (1e6), sin el bug de redondeo doble.
     expect(formatear(999_999, 'moneda')).toBe('RD$ 999,999')
     expect(formatear(1_000_000, 'moneda')).toBe('RD$ 1.0 M')
   })
