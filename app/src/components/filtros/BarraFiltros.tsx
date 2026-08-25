@@ -31,7 +31,7 @@ export function BarraFiltros() {
   const unidades = aOpciones(ds.getUnidadesDe(filtro.nivel, filtro.areaId))
 
   return (
-    <div className="border-b border-white/10 bg-panel/80 backdrop-blur">
+    <div data-barra-filtros className="border-b border-white/10 bg-panel/80 backdrop-blur">
       <div className="flex flex-wrap items-end gap-4 px-6 py-4">
         <Desplegable etiqueta="Nivel" opciones={niveles}
           valor={filtro.nivel === null ? null : String(filtro.nivel)}
