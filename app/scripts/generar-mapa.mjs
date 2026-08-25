@@ -13,8 +13,20 @@ const paises = feature(atlas, atlas.objects.countries)
 const rd = paises.features.find(f => String(f.id) === '214')   // ISO numérico de RD
 if (!rd) throw new Error('No se encontró República Dominicana (id 214) en el atlas')
 
-const ANCHO = 1000, ALTO = 520
-const proy = geoMercator().fitExtent([[20, 20], [ANCHO - 20, ALTO - 20]], rd)
+// El lienzo se ajusta a la caja real de la geometría (más un margen), en vez
+// de un tamaño fijo con el país centrado y sobrando espacio a los lados: se
+// mide primero la relación de aspecto real del contorno proyectado y luego
+// se dimensiona el lienzo para que el país lo llene margen a margen.
+const MARGEN = 24
+const ALTO_CONTENIDO = 720
+const proyMuestra = geoMercator().fitSize([1000, 1000], rd)
+const [[bx0, by0], [bx1, by1]] = geoPath(proyMuestra).bounds(rd)
+const aspecto = (bx1 - bx0) / (by1 - by0)
+const ANCHO_CONTENIDO = Math.round(ALTO_CONTENIDO * aspecto)
+
+const ANCHO = ANCHO_CONTENIDO + MARGEN * 2
+const ALTO = ALTO_CONTENIDO + MARGEN * 2
+const proy = geoMercator().fitExtent([[MARGEN, MARGEN], [ANCHO - MARGEN, ALTO - MARGEN]], rd)
 const d = geoPath(proy)(rd)
 
 const [tx, ty] = proy.translate()

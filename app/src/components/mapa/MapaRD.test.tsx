@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ProveedorFiltros, useFiltros } from '../../state/FiltrosContext'
 import { MapaRD } from './MapaRD'
@@ -38,5 +38,34 @@ describe('MapaRD', () => {
     const r = (el: HTMLElement) =>
       Number(el.querySelector('circle')!.getAttribute('r'))
     expect(r(santiago)).toBeGreaterThan(r(pedernales))
+  })
+
+  it('distingue por tamaño entre los subcentros, sin aplastarlos al mínimo', () => {
+    montar()
+    const r = (el: HTMLElement) =>
+      Number(el.querySelector('circle')!.getAttribute('r'))
+    // Pedernales (0.10) es el subcentro de menor peso; Verón Punta Cana
+    // (0.22) el de mayor peso. Deben diferenciarse, y ninguno debe caer
+    // por debajo del radio mínimo clicable de 7px.
+    const pedernales = screen.getByRole('button', { name: /Pedernales/ })
+    const veron = screen.getByRole('button', { name: /Verón Punta Cana/ })
+    expect(r(veron)).toBeGreaterThan(r(pedernales))
+    expect(r(pedernales)).toBeGreaterThanOrEqual(7)
+  })
+
+  it('activa un punto con Enter desde el teclado', async () => {
+    montar()
+    const barahona = screen.getByRole('button', { name: /Recinto Barahona/ })
+    barahona.focus()
+    fireEvent.keyDown(barahona, { key: 'Enter' })
+    expect(screen.getByTestId('espia')).toHaveTextContent('recinto-barahona')
+  })
+
+  it('activa un punto con la barra espaciadora desde el teclado', async () => {
+    montar()
+    const barahona = screen.getByRole('button', { name: /Recinto Barahona/ })
+    barahona.focus()
+    fireEvent.keyDown(barahona, { key: ' ' })
+    expect(screen.getByTestId('espia')).toHaveTextContent('recinto-barahona')
   })
 })
