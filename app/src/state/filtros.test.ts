@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { FILTRO_INICIAL, MAXIMO_HISTORIAL, reducir, chipsDe, type EstadoFiltros } from './filtros'
+import { mockDataSource as ds } from '../data/mock/MockDataSource'
 
 const inicial: EstadoFiltros = { actual: FILTRO_INICIAL, historial: [] }
 
@@ -155,6 +156,32 @@ describe('reducir', () => {
     e = reducir(e, { tipo: 'atras' })
     expect(e.actual.nivel).not.toBe(nivelAntesDeAtras)
     expect(e.historial).toHaveLength(MAXIMO_HISTORIAL - 1)
+  })
+})
+
+// --- Corrección de hallazgos de revisión de la Tarea 7 ---
+
+describe('coherencia entre getAreas y la acción area', () => {
+  it('toda opción que getAreas ofrece, para cualquier nivel, es aceptada de verdad por el reductor', () => {
+    // Bug original: getAreas (MockDataSource) y conArea (aquí) se endurecieron
+    // por separado y dejaron de coincidir. Para nivel 1 (Rectoría y organismos
+    // de apoyo), getAreas ofrecía 'rectoria' como única opción, pero conArea
+    // solo aceptaba tipo 'facultad' o 'vicerrectoria': un clic muerto.
+    // Este test recorre todos los niveles (incluido "sin nivel") y exige que
+    // escoger cualquier opción ofrecida produzca un cambio real en el filtro.
+    const conNivelNulo = inicial
+    for (const area of ds.getAreas(null)) {
+      const e = reducir(conNivelNulo, { tipo: 'area', valor: area.id })
+      expect(e.actual.areaId).toBe(area.id)
+    }
+
+    for (const n of ds.getNiveles()) {
+      const conNivel = reducir(inicial, { tipo: 'nivel', valor: n.id })
+      for (const area of ds.getAreas(n.id)) {
+        const e = reducir(conNivel, { tipo: 'area', valor: area.id })
+        expect(e.actual.areaId).toBe(area.id)
+      }
+    }
   })
 })
 

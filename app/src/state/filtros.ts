@@ -1,6 +1,6 @@
 import type { Filtro, Periodo, EstadoFiltro } from '../data/source'
 import type { NivelId, CategoriaIndicador } from '../data/tipos'
-import { porId, ancestrosDe, NIVELES } from '../data/mock/unidades'
+import { porId, ancestrosDe, NIVELES, puedeSerArea } from '../data/mock/unidades'
 
 export const FILTRO_INICIAL: Filtro = {
   nivel: null, areaId: null, unidadId: null,
@@ -59,13 +59,17 @@ function desdeUnidad(f: Filtro, unidadId: string): Filtro {
   return { ...f, nivel: u.nivel, areaId, unidadId }
 }
 
-/** El desplegable de área solo puede apuntar a una facultad o una
- * vicerrectoría: cualquier otro id (inexistente o de otro tipo) se ignora
- * en vez de dejar el filtro en una combinación que no resuelve nada. */
+/** El desplegable de área solo puede apuntar a un id que exista y tenga
+ * unidades hijas (`puedeSerArea`): cualquier otro (inexistente, o una hoja
+ * sin descendencia) se ignora en vez de dejar el filtro en una combinación
+ * que no resuelve nada. La regla es la misma que usa `getAreas` en
+ * `MockDataSource` para ofrecer las opciones, así ambas piezas no pueden
+ * volver a divergir: antes esta función solo aceptaba tipo 'facultad' o
+ * 'vicerrectoria', lo que rechazaba 'rectoria' aunque `getAreas` sí la
+ * ofreciera para el nivel 1 (Rectoría y organismos de apoyo). */
 function conArea(f: Filtro, areaId: string | null): Filtro {
   if (areaId === null) return { ...f, areaId: null, unidadId: null }
-  const a = porId(areaId)
-  if (!a || !['facultad', 'vicerrectoria'].includes(a.tipo)) return f
+  if (!puedeSerArea(areaId)) return f
   return { ...f, areaId, unidadId: null }
 }
 

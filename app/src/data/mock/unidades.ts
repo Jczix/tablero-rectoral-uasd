@@ -239,6 +239,17 @@ export const porId = (id: string): Unidad | undefined => indice.get(id)
 export const hijosDe = (id: string | null): Unidad[] =>
   UNIDADES.filter(x => x.padreId === id)
 
+/**
+ * Un id puede actuar como "área" en la cascada de filtros si existe y tiene
+ * unidades hijas: cubre facultades, vicerrectorías y también la propia
+ * rectoría (de la que cuelgan directamente las direcciones especializadas
+ * de nivel 3). Es la única regla que decide si un id de área es válido:
+ * tanto `getAreas` (MockDataSource) como `conArea` (state/filtros) la usan,
+ * para no volver a divergir como ocurrió cuando `conArea` filtraba por tipo
+ * de unidad en vez de por esta propiedad estructural.
+ */
+export const puedeSerArea = (id: string): boolean => hijosDe(id).length > 0
+
 export function ancestrosDe(id: string): Unidad[] {
   const cadena: Unidad[] = []
   let actual = indice.get(id)

@@ -1,6 +1,6 @@
 import type { DataSource, Filtro, FilaUnidad, ResumenAgregado } from '../source'
 import type { Unidad, Indicador, PuntoSerie, Semaforo } from '../tipos'
-import { UNIDADES, NIVELES, porId, hijosDe } from './unidades'
+import { UNIDADES, NIVELES, porId, hijosDe, puedeSerArea } from './unidades'
 import { INDICADORES, indicadoresDe } from './catalogo'
 import { generarSerie, clasificar } from './generador'
 
@@ -90,16 +90,20 @@ export const mockDataSource: DataSource = {
   getUnidades: () => UNIDADES,
 
   getAreas(nivel) {
-    if (nivel === 12) return UNIDADES.filter(u => u.tipo === 'facultad')
+    // Cada opción devuelta debe ser aceptada de verdad por `conArea` en
+    // state/filtros.ts: `puedeSerArea` es la misma regla ahí y aquí, así
+    // esta función no puede volver a ofrecer un id que el reductor rechace.
+    if (nivel === 12)
+      return UNIDADES.filter(u => u.tipo === 'facultad' && puedeSerArea(u.id))
     if (nivel === null || nivel === 2 || nivel === 11)
-      return UNIDADES.filter(u => u.tipo === 'vicerrectoria')
+      return UNIDADES.filter(u => u.tipo === 'vicerrectoria' && puedeSerArea(u.id))
     if ([6, 7, 8].includes(nivel)) return []   // territorial: sin nivel intermedio
     // El área es la unidad padre de las unidades de este nivel. Se deriva por
     // `nivel`, no por `tipo`: niveles 3, 4 y 5 comparten tipo 'direccion' pero
     // corresponden a familias de padres distintas (direcciones especializadas,
     // Investigación y Postgrado, Extensión).
     const padres = new Set(UNIDADES.filter(u => u.nivel === nivel).map(u => u.padreId))
-    return UNIDADES.filter(u => padres.has(u.id))
+    return UNIDADES.filter(u => padres.has(u.id) && puedeSerArea(u.id))
   },
 
   getUnidadesDe(nivel, areaId) {
