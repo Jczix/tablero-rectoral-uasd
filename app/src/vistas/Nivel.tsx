@@ -121,7 +121,8 @@ export function Nivel() {
                       entre sí. */}
                   <div className="text-xs text-white/70">
                     {f.porSemaforo.verde} en meta · {f.porSemaforo.ambar} en riesgo
-                    {' · '}{f.porSemaforo.rojo} incumplidos
+                    {' · '}{f.porSemaforo.rojo}{' '}
+                    {f.porSemaforo.rojo === 1 ? 'incumplido' : 'incumplidos'}
                   </div>
                   <Minigrafico datos={f.serie} estado={f.semaforo} />
                 </button>

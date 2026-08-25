@@ -86,7 +86,10 @@ describe('Nivel — el filtro de Estado filtra unidades, no destruye su cálculo
     // incumplidos". El desglose completo las hace coherentes entre sí.
     const comunicacion = screen.getByRole('button', { name: /Escuela de Comunicación Social/ })
     expect(comunicacion).toHaveTextContent('70.0%')
-    expect(comunicacion).toHaveTextContent(/\d+ en meta · \d+ en riesgo · \d+ incumplidos/)
+    expect(comunicacion).toHaveTextContent('14 en meta · 6 en riesgo · 0 incumplidos')
+    // Concordancia de número: "1 incumplido", no "1 incumplidos".
+    expect(screen.getByRole('button', { name: /Escuela de Filosofía/ }))
+      .toHaveTextContent('10 en meta · 9 en riesgo · 1 incumplido')
   })
 
   it('el título incluye un contador de unidades que refleja el filtro aplicado', () => {
