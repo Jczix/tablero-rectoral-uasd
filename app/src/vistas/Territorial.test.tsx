@@ -66,4 +66,36 @@ describe('Territorial', () => {
     const fila = screen.getByRole('row', { name: /Recinto Barahona/ })
     expect(fila).toHaveAttribute('aria-current', 'true')
   })
+
+  it('anuncia con aria-sort qué columna y en qué sentido está ordenando', async () => {
+    const usuario = montar()
+    const tabla = within(screen.getByRole('table'))
+    // Por defecto ordena por 'Unidad' (nombre), ascendente.
+    expect(tabla.getByRole('columnheader', { name: /^Unidad/ }))
+      .toHaveAttribute('aria-sort', 'ascending')
+    expect(tabla.getByRole('columnheader', { name: /% en meta/ }))
+      .not.toHaveAttribute('aria-sort')
+
+    await usuario.click(screen.getByRole('button', { name: /% en meta/ }))
+
+    expect(tabla.getByRole('columnheader', { name: /% en meta/ }))
+      .toHaveAttribute('aria-sort', 'descending')
+    expect(tabla.getByRole('columnheader', { name: /^Unidad/ }))
+      .not.toHaveAttribute('aria-sort')
+  })
+
+  it('muestra una flecha visual junto al encabezado activo', async () => {
+    const usuario = montar()
+    expect(screen.getByRole('button', { name: /^Unidad/ }).textContent).toContain('▲')
+
+    await usuario.click(screen.getByRole('button', { name: /% en meta/ }))
+    expect(screen.getByRole('button', { name: /% en meta/ }).textContent).toContain('▼')
+  })
+
+  it('la fila anuncia la unidad y que se puede abrir su detalle', () => {
+    montar()
+    const fila = screen.getByRole('row', { name: /Recinto Barahona/ })
+    expect(fila.getAttribute('aria-label')).toMatch(/Recinto Barahona/)
+    expect(fila.getAttribute('aria-label')).toMatch(/detalle/i)
+  })
 })

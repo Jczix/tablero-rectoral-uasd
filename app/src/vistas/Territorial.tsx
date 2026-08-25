@@ -16,6 +16,17 @@ const ORDEN_TIPO = ['recinto', 'centro', 'subcentro']
 
 type Columna = 'nombre' | 'matricula' | 'cumplimiento'
 
+// Dirección real de cada columna ordenable, tal como ordena el `sort` de
+// abajo: 'nombre' agrupa por tipo y dentro de cada tipo ordena el nombre
+// ascendente; 'matricula' y 'cumplimiento' siempre ordenan de mayor a menor.
+// Se usa tanto para `aria-sort` (percibible por lector de pantalla) como
+// para la flecha visual (percibible a distancia, donde la sutil diferencia
+// de color entre `text-white` y `text-white/60` no basta).
+const DIRECCION: Record<Columna, 'ascending' | 'descending'> = {
+  nombre: 'ascending', matricula: 'descending', cumplimiento: 'descending',
+}
+const FLECHA: Record<'ascending' | 'descending', string> = { ascending: '▲', descending: '▼' }
+
 export function Territorial() {
   const { filtro, despachar } = useFiltros()
   const [orden, setOrden] = useState<Columna>('nombre')
@@ -52,14 +63,21 @@ export function Territorial() {
     }
   }, [filas.length])
 
-  const encabezado = (col: Columna, texto: string) => (
-    <th scope="col" className="px-4 py-3 text-left font-medium">
-      <button onClick={() => setOrden(col)}
-        className={`hover:text-white ${orden === col ? 'text-white' : 'text-white/60'}`}>
-        {texto}
-      </button>
-    </th>
-  )
+  const encabezado = (col: Columna, texto: string) => {
+    const activa = orden === col
+    return (
+      <th scope="col" className="px-4 py-3 text-left font-medium"
+        aria-sort={activa ? DIRECCION[col] : undefined}>
+        <button onClick={() => setOrden(col)}
+          className={`hover:text-white ${activa ? 'text-white' : 'text-white/60'}`}>
+          {texto}
+          {activa && (
+            <span aria-hidden className="ml-1">{FLECHA[DIRECCION[col]]}</span>
+          )}
+        </button>
+      </th>
+    )
+  }
 
   return (
     <div className="grid h-full gap-4 overflow-hidden p-6 xl:grid-cols-[1fr_1fr]">
@@ -92,6 +110,26 @@ export function Territorial() {
               </thead>
               <tbody>
                 {filas.map((f: FilaUnidad) => {
+                  // `activa` (y el `aria-current`/resalte que dependen de
+                  // ella) hoy no llega a verse en esta vista: las 35 unidades
+                  // territoriales no tienen descendencia (`hijosDe` vacío),
+                  // así que en cuanto `filtro.unidadId` apunta a cualquiera
+                  // de ellas —sea por clic aquí, en el mapa, o eligiéndola en
+                  // el desplegable "Unidad" de la barra de filtros, los tres
+                  // pasan por el mismo `desdeUnidad` en state/filtros.ts— el
+                  // Enrutador navega de inmediato a <Unidad />, antes de que
+                  // Territorial vuelva a pintarse con el resalte puesto. Es
+                  // una decisión de diseño confirmada en revisión: el clic
+                  // siempre navega, igual que en el mapa, los rankings y la
+                  // rejilla de nivel, y "Atrás" devuelve exactamente a esta
+                  // tabla con las 35 unidades. Se deja el mecanismo (no es
+                  // código muerto en el sentido de "nunca compila/ejecuta":
+                  // si el día de mañana una unidad territorial gana
+                  // descendencia, o el Enrutador cambia el orden de sus
+                  // comprobaciones, empieza a verse sin tocar nada aquí) en
+                  // vez de retirarlo por una lectura superficial de "no se
+                  // usa". No eliminar sin revisar antes si alguna de esas
+                  // dos condiciones cambió.
                   const activa = filtro.unidadId === f.unidad.id
                   const activar = () => seleccionar(f.unidad.id)
                   const alTeclado = (e: KeyboardEvent<HTMLTableRowElement>) => {
@@ -102,9 +140,17 @@ export function Territorial() {
                       activar()
                     }
                   }
+                  // Sin esta etiqueta, un lector de pantalla que tabula hasta
+                  // la fila solo anuncia el contenido de las celdas ("fila,
+                  // Sede Central, Sede, 118 mil, 70.0%, En riesgo"), sin
+                  // ninguna pista de que Enter la activa. Mismo criterio que
+                  // en MapaRD.tsx: nombrar la unidad y decir qué hace la
+                  // activación.
+                  const etiqueta = `${f.unidad.nombre}. Abrir el detalle de esta unidad.`
                   return (
                     <tr key={f.unidad.id}
                       tabIndex={0}
+                      aria-label={etiqueta}
                       aria-current={activa ? 'true' : undefined}
                       onClick={activar}
                       onKeyDown={alTeclado}
