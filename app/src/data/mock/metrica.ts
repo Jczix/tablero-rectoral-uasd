@@ -5,7 +5,16 @@ const normalizar = (s: string) =>
 
 const PORCENTAJE = ['nivel de satisfaccion', 'satisfaccion', 'indice', 'porcentaje',
   'cumplimiento', 'cobertura', 'eficiencia', 'exactitud', 'productividad']
-const MONEDA = ['recursos gestionados', 'presupuest', 'recaudacion', 'fondos gestionados']
+/**
+ * Solo expresiones INEQUÍVOCAMENTE monetarias. El prefijo 'presupuest' que
+ * había aquí atrapaba cualquier indicador que mencionara el presupuesto sin
+ * ser un monto: en la Dirección de Presupuesto, 16 de sus 20 indicadores se
+ * pintaban en pesos ("Modificaciones presupuestarias tramitadas — RD$ 7.0 M",
+ * "Satisfacción de usuarios presupuestarios — RD$ 12.3 M"). Un indicador es
+ * moneda solo si nombra el flujo de dinero, no el proceso que lo administra.
+ */
+const MONEDA = ['recursos gestionados', 'ejecucion presupuestaria', 'recaudacion',
+  'fondos gestionados']
 const MENOR_MEJOR = ['error', 'reproceso', 'riesgo', 'incidencia', 'queja', 'demora']
 
 export function inferirMetrica(nombre: string): {
@@ -19,11 +28,14 @@ export function inferirMetrica(nombre: string): {
   const direccion: Direccion =
     MENOR_MEJOR.some(k => n.includes(k)) ? 'menor-mejor' : 'mayor-mejor'
 
-  if (MONEDA.some(k => n.includes(k)))
-    return { tipoMetrica: 'moneda', unidadMedida: 'RD$', direccion }
-
+  // PORCENTAJE se comprueba ANTES que MONEDA: cuando un nombre menciona a la
+  // vez una magnitud relativa y el presupuesto ("Cumplimiento del ciclo
+  // presupuestario"), lo que se mide es el porcentaje, no un monto.
   if (PORCENTAJE.some(k => n.includes(k)))
     return { tipoMetrica: 'porcentaje', unidadMedida: '%', direccion }
+
+  if (MONEDA.some(k => n.includes(k)))
+    return { tipoMetrica: 'moneda', unidadMedida: 'RD$', direccion }
 
   return { tipoMetrica: 'conteo', unidadMedida: '', direccion }
 }
