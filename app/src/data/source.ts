@@ -39,6 +39,22 @@ export interface FilaUnidad {
   semaforo: Semaforo
   serie: number[]          // 12 valores, para el minigráfico
   indicadoresEnRojo: number
+  /** Desglose completo de los indicadores de la unidad bajo el filtro
+   *  vigente. Sin él, la tarjeta de la rejilla mostraba tres señales de
+   *  definiciones distintas (semáforo, % en meta, incumplidos) que se
+   *  contradecían entre sí porque el ámbar no aparecía en ninguna de las
+   *  dos cifras: "70.0% en meta — 0 de 20 incumplidos — En riesgo". */
+  porSemaforo: Record<Semaforo, number>
+  /** Total de indicadores que entraron en el cálculo (respeta categoría). */
+  totalIndicadores: number
+}
+
+/** Serie de un indicador ya recortada al período vigente. `previa` solo
+ *  viene con el período 'comparativo': son los 12 meses inmediatamente
+ *  anteriores a la ventana en curso, para dibujarlos superpuestos. */
+export interface SeriePeriodo {
+  serie: PuntoSerie[]
+  previa?: PuntoSerie[]
 }
 
 export interface ResumenAgregado {
@@ -57,8 +73,12 @@ export interface DataSource {
   getUnidadesDe(nivel: NivelId | null, areaId: string | null): Unidad[]
   getIndicadores(unidadId: string, f: Filtro): Indicador[]
   getSerie(indicadorId: string): PuntoSerie[]
+  /** La serie recortada a la ventana del período vigente (ver `SeriePeriodo`). */
+  getSeriePeriodo(indicadorId: string, f: Filtro): SeriePeriodo
   getUltimo(indicadorId: string): PuntoSerie | undefined
   getResumen(f: Filtro): ResumenAgregado
   getFilas(f: Filtro): FilaUnidad[]
-  getTerritoriales(): FilaUnidad[]
+  /** Recibe el filtro vigente: sin él, el mapa mostraba una cifra para una
+   *  unidad y los rankings de la misma pantalla otra distinta. */
+  getTerritoriales(f: Filtro): FilaUnidad[]
 }

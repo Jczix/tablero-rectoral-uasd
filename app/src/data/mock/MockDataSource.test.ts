@@ -88,7 +88,7 @@ describe('MockDataSource', () => {
   })
 
   it('entrega la red territorial con minigráfico de doce puntos', () => {
-    const t = ds.getTerritoriales()
+    const t = ds.getTerritoriales(base)
     expect(t.length).toBe(1 + 4 + 18 + 12)   // sede + recintos + centros + subcentros
     expect(t[0].serie).toHaveLength(12)
     expect(t.every(f => f.unidad.coords)).toBe(true)
@@ -145,5 +145,109 @@ describe('MockDataSource', () => {
     const dirRegistro = ds.getResumen({ ...base, unidadId: 'dir-registro' })
     expect(dirRegistro.mejores).toHaveLength(1)
     expect(dirRegistro.enAlerta).toHaveLength(0)
+  })
+  // --- Oleada final: el filtro Estado, el Período y la coherencia mapa/rankings ---
+
+  it('el conteo de indicadores del resumen refleja el filtro de Estado', () => {
+    const todos = ds.getResumen(base)
+    const rojo = ds.getResumen({ ...base, estado: 'rojo' })
+    // Antes el agregado ignoraba `estado` y la portada quedaba idéntica,
+    // incluidos los "3,160 indicadores" del KPI de POA.
+    expect(rojo.totalIndicadores).toBeLessThan(todos.totalIndicadores)
+    expect(rojo.totalIndicadores).toBe(todos.porSemaforo.rojo)
+    expect(rojo.porSemaforo.verde).toBe(0)
+    expect(rojo.porSemaforo.ambar).toBe(0)
+  })
+
+  it('los rankings se recortan al estado escogido, conservando el % real de cada unidad', () => {
+    const rojo = ds.getResumen({ ...base, estado: 'rojo' })
+    expect(rojo.mejores.length).toBeGreaterThan(0)
+    for (const f of [...rojo.mejores, ...rojo.enAlerta])
+      expect(f.semaforo, f.unidad.nombre).toBe('rojo')
+
+    // El % en meta de una unidad no se calcula sobre el subconjunto ya
+    // filtrado (eso daría 0.0% por construcción): es el mismo que sin filtro.
+    const todos = ds.getFilas(base)
+    const porId = new Map(todos.map(f => [f.unidad.id, f.cumplimiento]))
+    for (const f of rojo.mejores)
+      expect(f.cumplimiento).toBe(porId.get(f.unidad.id))
+  })
+
+  it('cambiar el período cambia las cifras del resumen', () => {
+    const mes = ds.getResumen(base)
+    const trimestre = ds.getResumen({ ...base, periodo: 'trimestre' })
+    const anio = ds.getResumen({ ...base, periodo: 'anio' })
+    // Promediar 3 o 12 meses no puede dar exactamente el mismo reparto de
+    // semáforos que un único mes suelto sobre 3,160 indicadores.
+    expect(trimestre.porSemaforo).not.toEqual(mes.porSemaforo)
+    expect(anio.porSemaforo).not.toEqual(mes.porSemaforo)
+    expect(anio.cumplimiento).not.toBe(mes.cumplimiento)
+  })
+
+  it('cambiar el período cambia el % en meta de las unidades', () => {
+    const de = (periodo: Filtro['periodo']) =>
+      ds.getFilas({ ...base, nivel: 12, periodo })
+        .map(f => `${f.unidad.id}:${f.cumplimiento}`)
+    const mes = de('mes')
+    // Las 52 escuelas no pueden dar exactamente el mismo % en meta
+    // promediando 3, 6 o 12 meses que mirando un único mes suelto.
+    for (const p of ['trimestre', 'semestre', 'anio'] as const)
+      expect(de(p), p).not.toEqual(mes)
+    // Y al menos una unidad concreta cambia de cifra de forma visible.
+    const distintas = de('anio').filter((v, i) => v !== mes[i])
+    expect(distintas.length).toBeGreaterThan(5)
+  })
+
+  it("'Mes actual' no altera ninguna cifra respecto al último punto de la serie", () => {
+    // Garantía de que implementar el período de verdad no movió el
+    // comportamiento por defecto del tablero.
+    const fila = ds.getFilas({ ...base, unidadId: 'dir-registro' })[0]
+    const ind = ds.getIndicadores('dir-registro', base)
+    const verdes = ind.filter(i => ds.getUltimo(i.id)!.semaforo === 'verde').length
+    expect(fila.cumplimiento).toBeCloseTo((verdes / ind.length) * 100, 10)
+  })
+
+  it("'comparativo' entrega dos ventanas de doce meses superpuestas", () => {
+    const id = 'dir-registro::servicio::1'
+    const completa = ds.getSerie(id)
+    const c = ds.getSeriePeriodo(id, { ...base, periodo: 'comparativo' })
+    expect(c.serie).toHaveLength(12)
+    expect(c.previa).toHaveLength(12)
+    expect(c.serie).toEqual(completa.slice(-12))
+    expect(c.previa).toEqual(completa.slice(0, 12))
+  })
+
+  it('el diálogo recorta la serie a la ventana del período', () => {
+    const id = 'dir-registro::servicio::1'
+    expect(ds.getSeriePeriodo(id, base).serie).toHaveLength(24)
+    expect(ds.getSeriePeriodo(id, { ...base, periodo: 'trimestre' }).serie).toHaveLength(3)
+    expect(ds.getSeriePeriodo(id, { ...base, periodo: 'semestre' }).serie).toHaveLength(6)
+    expect(ds.getSeriePeriodo(id, { ...base, periodo: 'anio' }).serie).toHaveLength(12)
+  })
+
+  it('el mapa y los rankings dan la misma cifra para la misma unidad bajo el mismo filtro', () => {
+    // Con `getTerritoriales()` sin filtro, la portada mostraba a la vez
+    // "Verón Punta Cana 40.0% en meta" en el ranking y "55.0%" en el mapa.
+    for (const f of [
+      { ...base, categoria: 'proceso' as const },
+      { ...base, categoria: 'servicio' as const },
+      { ...base, periodo: 'trimestre' as const },
+    ]) {
+      const territoriales = new Map(
+        ds.getTerritoriales(f).map(x => [x.unidad.id, x.cumplimiento]))
+      for (const x of ds.getFilas(f)) {
+        if (!territoriales.has(x.unidad.id)) continue
+        expect(territoriales.get(x.unidad.id), x.unidad.nombre).toBe(x.cumplimiento)
+      }
+    }
+  })
+
+  it('cada fila trae el desglose completo, y suma el total de indicadores', () => {
+    for (const f of ds.getFilas({ ...base, nivel: 12 })) {
+      const { verde, ambar, rojo } = f.porSemaforo
+      expect(verde + ambar + rojo, f.unidad.nombre).toBe(f.totalIndicadores)
+      expect(f.indicadoresEnRojo).toBe(rojo)
+      expect(f.cumplimiento).toBeCloseTo((verde / f.totalIndicadores) * 100, 10)
+    }
   })
 })

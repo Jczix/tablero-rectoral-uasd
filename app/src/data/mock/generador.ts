@@ -1,4 +1,5 @@
 import type { PuntoSerie, Semaforo, Indicador } from '../tipos'
+import type { Periodo } from '../source'
 import { mulberry32, hashSemilla } from './aleatorio'
 import { INDICADORES } from './catalogo'
 import { porId } from './unidades'
@@ -10,6 +11,52 @@ export function clasificar(cumplimiento: number): Semaforo {
   if (cumplimiento >= 95) return 'verde'
   if (cumplimiento >= 80) return 'ambar'
   return 'rojo'
+}
+
+/**
+ * Cuántos meses abarca cada período del desplegable. Es la traducción única
+ * de `filtro.periodo` a una ventana de la serie mensual, y la usan por igual
+ * el cálculo del % en meta de una unidad, los agregados de `getResumen` y el
+ * diálogo de indicador.
+ *
+ * 'mes' vale 1: la ventana es el último punto, exactamente el comportamiento
+ * anterior a que el período existiera de verdad. 'comparativo' vale 12
+ * porque sus cifras agregadas usan el año en curso; lo que lo distingue es
+ * que el diálogo dibuja además los 12 meses anteriores superpuestos.
+ */
+export const MESES_PERIODO: Record<Periodo, number> = {
+  mes: 1, trimestre: 3, semestre: 6, anio: 12, comparativo: 12,
+}
+
+/**
+ * Cumplimiento medio de una ventana de la serie: los `meses` puntos que
+ * terminan justo antes de `finExclusivo`. Con `meses = 1` devuelve el
+ * cumplimiento del punto final tal cual, así que 'Mes actual' no altera
+ * ninguna cifra respecto al comportamiento previo.
+ */
+export function cumplimientoDeVentana(
+  serie: PuntoSerie[], finExclusivo: number, meses: number,
+): number {
+  const inicio = Math.max(0, finExclusivo - meses)
+  let suma = 0
+  let n = 0
+  for (let i = inicio; i < finExclusivo && i < serie.length; i++) {
+    suma += serie[i].cumplimiento
+    n++
+  }
+  return n ? suma / n : 0
+}
+
+/**
+ * Semáforo de un indicador PARA EL PERÍODO VIGENTE: clasifica el
+ * cumplimiento medio de la ventana en vez del último mes suelto. Con 'Mes
+ * actual' coincide punto por punto con `punto.semaforo`, porque ese semáforo
+ * se calculó con la misma `clasificar` sobre ese mismo cumplimiento.
+ */
+export function semaforoDeVentana(
+  serie: PuntoSerie[], finExclusivo: number, meses: number,
+): Semaforo {
+  return clasificar(cumplimientoDeVentana(serie, finExclusivo, meses))
 }
 
 /**

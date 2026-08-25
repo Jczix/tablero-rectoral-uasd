@@ -39,7 +39,9 @@ function crearRadio(pesos: number[]) {
 
 export function MapaRD({ alto = '100%' }: { alto?: string | number }) {
   const { filtro, despachar } = useFiltros()
-  const filas = ds.getTerritoriales()
+  // El filtro vigente entra en el cálculo: sin él, el mismo punto del mapa
+  // anunciaba un porcentaje distinto al del ranking de la misma pantalla.
+  const filas = ds.getTerritoriales(filtro)
   const hayFoco = filtro.unidadId !== null
   const radio = crearRadio(filas.map(f => f.unidad.peso))
 

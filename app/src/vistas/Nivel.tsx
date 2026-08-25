@@ -4,6 +4,7 @@ import { useFiltros } from '../state/FiltrosContext'
 import { porId, hijosDe, NIVELES } from '../data/mock/unidades'
 import { Semaforo } from '../components/kpi/Semaforo'
 import { Minigrafico } from '../components/kpi/Minigrafico'
+import { EstadoVacio } from '../components/marco/EstadoVacio'
 import type { FilaUnidad } from '../data/source'
 
 export function Nivel() {
@@ -47,17 +48,6 @@ export function Nivel() {
     [filas, filtro.estado],
   )
 
-  // El total de indicadores por unidad (para el subtexto de incumplidos)
-  // debe coincidir con la misma base que usa `indicadoresEnRojo`: categoría
-  // sí lo reduce (10 en vez de 20), pero estado NO debe alterarlo, por la
-  // misma razón que no debe alterar el cálculo del % en meta.
-  const totalesPorUnidad = useMemo(() => {
-    const filtroCompleto = { ...filtro, estado: 'todos' as const }
-    const mapa = new Map<string, number>()
-    for (const u of unidades) mapa.set(u.id, ds.getIndicadores(u.id, filtroCompleto).length)
-    return mapa
-  }, [unidades, filtro])
-
   // Señal de que la rejilla tiene más contenido del que cabe en pantalla:
   // en un televisor de pared nadie va a desplazarse para descubrirlo. El
   // contador en el título ("· N unidades") ya lo dice con el número exacto;
@@ -84,6 +74,11 @@ export function Nivel() {
     }
   }, [filasVisibles])
 
+  // Ámbito en palabras para el estado vacío: nombra lo que el Rector acaba
+  // de escoger, no un genérico, para que la frase se lea como una respuesta
+  // a su clic y no como un error del sistema.
+  const ambito = foco ? porId(foco)!.nombre : 'este nivel'
+
   const titulo = `${tituloBase} · ${filasVisibles.length} `
     + (filasVisibles.length === 1 ? 'unidad' : 'unidades')
 
@@ -92,9 +87,12 @@ export function Nivel() {
       <h2 className="mb-4 shrink-0 text-xl font-semibold">{titulo}</h2>
       <div className="relative min-h-0 flex-1">
         <div ref={scrollRef} className="h-full overflow-y-auto pr-1">
+          {filasVisibles.length === 0 && (
+            <EstadoVacio que="unidad" ambito={ambito}
+              estado={filtro.estado} categoria={filtro.categoria} />
+          )}
           <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
             {filasVisibles.map(f => {
-              const total = totalesPorUnidad.get(f.unidad.id) ?? 0
               return (
                 <button key={f.unidad.id}
                   onClick={() => despachar({
@@ -111,8 +109,19 @@ export function Nivel() {
                     {f.cumplimiento.toFixed(1)}%
                     <span className="ml-1 text-xs font-normal text-white/40">en meta</span>
                   </div>
-                  <div className="text-xs text-white/45">
-                    {f.indicadoresEnRojo} de {total} indicadores incumplidos
+                  {/* Las tres señales de la tarjeta (semáforo, % en meta y
+                      el conteo de fallos) se definían de tres maneras
+                      distintas y se contradecían: `cumplimiento` contaba
+                      solo verdes, el conteo solo rojos, y el ámbar no
+                      aparecía en ninguno de los dos. Se leía "En riesgo —
+                      70.0% en meta — 0 de 20 incumplidos", y una unidad
+                      "Incumplido" podía tener menos fallos que una "En
+                      meta". El desglose completo sobre el total real bajo
+                      el filtro vigente hace que las tres se expliquen
+                      entre sí. */}
+                  <div className="text-xs text-white/70">
+                    {f.porSemaforo.verde} en meta · {f.porSemaforo.ambar} en riesgo
+                    {' · '}{f.porSemaforo.rojo} incumplidos
                   </div>
                   <Minigrafico datos={f.serie} estado={f.semaforo} />
                 </button>

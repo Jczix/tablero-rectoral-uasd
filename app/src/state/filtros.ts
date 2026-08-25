@@ -136,7 +136,7 @@ const ETIQUETA_PERIODO: Record<Periodo, string> = {
   mes: 'Mes actual', trimestre: 'Trimestre', semestre: 'Semestre',
   anio: 'Año', comparativo: 'Comparativo 2025 vs 2026',
 }
-const ETIQUETA_ESTADO: Record<EstadoFiltro, string> = {
+export const ETIQUETA_ESTADO: Record<EstadoFiltro, string> = {
   todos: 'Todos', verde: 'En meta', ambar: 'En riesgo', rojo: 'Incumplido',
 }
 

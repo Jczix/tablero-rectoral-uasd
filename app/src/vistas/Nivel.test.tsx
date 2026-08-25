@@ -4,6 +4,17 @@ import { useEffect } from 'react'
 import { ProveedorFiltros, useFiltros } from '../state/FiltrosContext'
 import { Nivel } from './Nivel'
 import type { EstadoFiltro } from '../data/source'
+import type { NivelId } from '../data/tipos'
+
+function FijarNivel({ nivel, estado }: { nivel: NivelId; estado?: EstadoFiltro }) {
+  const { despachar } = useFiltros()
+  useEffect(() => {
+    despachar({ tipo: 'nivel', valor: nivel })
+    if (estado) despachar({ tipo: 'estado', valor: estado })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  return null
+}
 
 function Fijar({ estado }: { estado?: EstadoFiltro }) {
   const { despachar } = useFiltros()
@@ -52,6 +63,30 @@ describe('Nivel — el filtro de Estado filtra unidades, no destruye su cálculo
       .toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Escuela de Música/ }))
       .not.toBeInTheDocument()
+  })
+
+  it('cuando el filtro deja la rejilla vacía, lo explica en vez de dejar la página en blanco', () => {
+    // Ninguna de las cuatro vicerrectorías está en rojo: antes se veía el
+    // marco con "0 unidades" y el cuerpo completamente en blanco, que en un
+    // televisor de pared se lee como "el tablero falló".
+    render(
+      <ProveedorFiltros>
+        <FijarNivel nivel={2} estado="rojo" />
+        <Nivel />
+      </ProveedorFiltros>
+    )
+    const vacio = screen.getByTestId('estado-vacio')
+    expect(vacio).toHaveTextContent('Ninguna unidad de este nivel está en estado Incumplido.')
+    expect(vacio).toHaveTextContent(/Cambia el filtro Estado/)
+  })
+
+  it('el desglose de cada tarjeta explica el semáforo y el % en meta', () => {
+    montar()
+    // Las tres señales se contradecían: "En riesgo — 70.0% en meta — 0 de 20
+    // incumplidos". El desglose completo las hace coherentes entre sí.
+    const comunicacion = screen.getByRole('button', { name: /Escuela de Comunicación Social/ })
+    expect(comunicacion).toHaveTextContent('70.0%')
+    expect(comunicacion).toHaveTextContent(/\d+ en meta · \d+ en riesgo · \d+ incumplidos/)
   })
 
   it('el título incluye un contador de unidades que refleja el filtro aplicado', () => {

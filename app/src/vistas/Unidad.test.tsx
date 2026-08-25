@@ -3,18 +3,32 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ProveedorFiltros, useFiltros } from '../state/FiltrosContext'
 import { Unidad } from './Unidad'
+import type { EstadoFiltro, Periodo } from '../data/source'
 
-function Fijar({ unidadId }: { unidadId: string }) {
+function Fijar({ unidadId, periodo }: { unidadId: string; periodo?: Periodo }) {
   const { filtro, despachar } = useFiltros()
   if (filtro.unidadId !== unidadId)
     despachar({ tipo: 'seleccionarUnidad', valor: unidadId })
+  else if (periodo && filtro.periodo !== periodo)
+    despachar({ tipo: 'periodo', valor: periodo })
   return null
 }
 
-const montar = (unidadId: string) => {
+function FijarConEstado(
+  { unidadId, estado }: { unidadId: string; estado: EstadoFiltro },
+) {
+  const { filtro, despachar } = useFiltros()
+  if (filtro.unidadId !== unidadId)
+    despachar({ tipo: 'seleccionarUnidad', valor: unidadId })
+  else if (filtro.estado !== estado)
+    despachar({ tipo: 'estado', valor: estado })
+  return null
+}
+
+const montar = (unidadId: string, periodo?: Periodo) => {
   render(
     <ProveedorFiltros>
-      <Fijar unidadId={unidadId} />
+      <Fijar unidadId={unidadId} periodo={periodo} />
       <Unidad />
     </ProveedorFiltros>
   )
@@ -49,6 +63,32 @@ describe('Unidad', () => {
     await usuario.click(screen.getByText('Récords oficiales emitidos'))
     await usuario.click(screen.getByRole('button', { name: 'Cerrar' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('cuando el filtro deja la unidad sin indicadores, lo explica en vez de dejar el cuerpo en blanco', () => {
+    // La Escuela de Estadística no tiene ningún indicador incumplido: antes
+    // se veía el nombre de la unidad y debajo el cuerpo completamente vacío.
+    render(
+      <ProveedorFiltros>
+        <FijarConEstado unidadId="esc-estadistica" estado="rojo" />
+        <Unidad />
+      </ProveedorFiltros>
+    )
+    const vacio = screen.getByTestId('estado-vacio')
+    expect(vacio).toHaveTextContent('Ningún indicador de esta unidad está en estado Incumplido.')
+    expect(vacio).toHaveTextContent(/Cambia el filtro Estado/)
+  })
+
+  it('el diálogo respeta el período: con Trimestre la serie se recorta a tres meses', async () => {
+    const usuario = montar('dir-registro', 'trimestre')
+    await usuario.click(screen.getByText('Récords oficiales emitidos'))
+    expect(screen.getByText(/últimos 3 meses/)).toBeInTheDocument()
+  })
+
+  it("el diálogo dibuja dos ventanas superpuestas con el período 'Comparativo'", async () => {
+    const usuario = montar('dir-registro', 'comparativo')
+    await usuario.click(screen.getByText('Récords oficiales emitidos'))
+    expect(screen.getByText(/Año en curso frente al anterior/)).toBeInTheDocument()
   })
 
   it('atrapa el foco: Tab y Shift+Tab no se escapan hacia el fondo', async () => {

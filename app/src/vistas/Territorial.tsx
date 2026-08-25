@@ -31,7 +31,7 @@ export function Territorial() {
   const { filtro, despachar } = useFiltros()
   const [orden, setOrden] = useState<Columna>('nombre')
 
-  const filas = [...ds.getTerritoriales()].sort((a, b) => {
+  const filas = [...ds.getTerritoriales(filtro)].sort((a, b) => {
     if (orden === 'cumplimiento') return b.cumplimiento - a.cumplimiento
     if (orden === 'matricula') return b.unidad.peso - a.unidad.peso
     const t = ORDEN_TIPO.indexOf(a.unidad.tipo) - ORDEN_TIPO.indexOf(b.unidad.tipo)

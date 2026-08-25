@@ -4,6 +4,7 @@ import { useFiltros } from '../state/FiltrosContext'
 import { porId, ancestrosDe } from '../data/mock/unidades'
 import { TarjetaIndicador } from '../components/kpi/TarjetaIndicador'
 import { GraficoSerie } from '../components/graficos/GraficoSerie'
+import { EstadoVacio } from '../components/marco/EstadoVacio'
 import type { CategoriaIndicador } from '../data/tipos'
 
 /** Selector de elementos que el navegador considera enfocables por Tab. */
@@ -64,6 +65,17 @@ export function Unidad() {
 
   const ruta = [...ancestrosDe(u.id)].reverse().map(a => a.nombre).join(' › ')
 
+  // El diálogo respeta el período vigente: 'Mes actual' no define ninguna
+  // ventana de agregación, así que conserva el histórico completo de 24
+  // meses como contexto; trimestre/semestre/año hacen zoom sobre su ventana;
+  // 'comparativo' superpone el año en curso y el anterior.
+  const serieDetalle = detalle
+    ? ds.getSeriePeriodo(detalle.id, filtro)
+    : { serie: [], previa: undefined }
+  const rotuloSerie = filtro.periodo === 'comparativo'
+    ? 'Año en curso frente al anterior'
+    : `Serie de los últimos ${serieDetalle.serie.length} meses`
+
   const abrirIndicador = (indicadorId: string) => {
     // El elemento con foco al momento del clic es el propio botón de la
     // tarjeta: se guarda para devolverle el foco al cerrar el diálogo.
@@ -95,8 +107,15 @@ export function Unidad() {
       <h2 className="shrink-0 text-2xl font-semibold">{u.nombre}</h2>
 
       <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
-        {seccion('servicio', 'Indicadores de Servicio')}
-        {seccion('proceso', 'Indicadores de Proceso')}
+        {indicadores.length === 0 ? (
+          <EstadoVacio que="indicador" ambito="esta unidad"
+            estado={filtro.estado} categoria={filtro.categoria} />
+        ) : (
+          <>
+            {seccion('servicio', 'Indicadores de Servicio')}
+            {seccion('proceso', 'Indicadores de Proceso')}
+          </>
+        )}
       </div>
 
       {detalle && (
@@ -111,10 +130,10 @@ export function Unidad() {
                 Cerrar
               </button>
             </div>
-            <p className="mb-4 text-xs text-white/45">
-              Serie de los últimos 24 meses · {u.nombre}
+            <p className="mb-4 text-xs text-white/70">
+              {rotuloSerie} · {u.nombre}
             </p>
-            <GraficoSerie serie={ds.getSerie(detalle.id)}
+            <GraficoSerie serie={serieDetalle.serie} previa={serieDetalle.previa}
               tipoMetrica={detalle.tipoMetrica} />
           </div>
         </div>
