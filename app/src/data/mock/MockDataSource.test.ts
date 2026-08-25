@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mockDataSource as ds } from './MockDataSource'
 import type { Filtro } from '../source'
+import { NIVELES } from './unidades'
 
 const base: Filtro = {
   nivel: null, areaId: null, unidadId: null,
@@ -8,8 +9,25 @@ const base: Filtro = {
 }
 
 describe('MockDataSource', () => {
-  it('expone los 12 niveles', () => {
-    expect(ds.getNiveles()).toHaveLength(12)
+  it('expone solo los niveles que tienen al menos una unidad', () => {
+    const niveles = ds.getNiveles()
+    // Los 12 del árbol menos los dos reservados sin catálogo todavía.
+    expect(niveles).toHaveLength(10)
+    const ids = niveles.map(n => n.id)
+    expect(ids).not.toContain(9)    // Institutos y centros especializados
+    expect(ids).not.toContain(10)   // Servicios institucionales
+    // La regla es general, no una lista fija: cada nivel ofrecido tiene
+    // unidades de verdad, así que ninguno lleva a una pantalla vacía.
+    for (const n of niveles)
+      expect(ds.getUnidadesDe(n.id, null).length, n.nombre).toBeGreaterThan(0)
+  })
+
+  it('los niveles reservados siguen declarados en el árbol', () => {
+    // Excluirlos del desplegable no es borrarlos: el documento de diseño los
+    // contempla y deben reaparecer solos cuando se les levante el catálogo.
+    expect(NIVELES.map(n => n.id)).toContain(9)
+    expect(NIVELES.map(n => n.id)).toContain(10)
+    expect(NIVELES).toHaveLength(12)
   })
 
   it('con nivel Escuelas, las áreas son las nueve facultades', () => {

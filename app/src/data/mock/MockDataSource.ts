@@ -118,7 +118,22 @@ const SIN_FILTRO: Filtro = {
 }
 
 export const mockDataSource: DataSource = {
-  getNiveles: () => [...NIVELES].sort((a, b) => a.orden - b.orden),
+  /**
+   * Solo los niveles que hoy tienen al menos una unidad en el padrón. Los
+   * niveles 9 (Institutos y centros especializados) y 10 (Servicios
+   * institucionales) siguen reservados en `NIVELES` y en el documento de
+   * diseño, pero ninguna unidad los declara todavía: ofrecerlos en el
+   * desplegable llevaba a una pantalla vacía con "0 unidades", y son
+   * justamente las dos últimas opciones de la lista, donde va el dedo de
+   * quien explora. La exclusión es general —se calcula del padrón, no de
+   * una lista fija— para que reaparezcan solos el día que se levante su
+   * catálogo, sin tocar este código.
+   */
+  getNiveles: () => {
+    const conUnidades = new Set(UNIDADES.map(u => u.nivel))
+    return NIVELES.filter(n => conUnidades.has(n.id))
+      .sort((a, b) => a.orden - b.orden)
+  },
 
   getUnidades: () => UNIDADES,
 
