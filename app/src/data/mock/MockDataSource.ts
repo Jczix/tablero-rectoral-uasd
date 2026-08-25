@@ -12,19 +12,18 @@ const serieDe = (id: string): PuntoSerie[] => {
   return s
 }
 
-/** Nivel → tipo de unidad que le corresponde. */
-const TIPO_POR_NIVEL: Record<number, string> = {
-  1: 'organismo', 2: 'vicerrectoria', 3: 'direccion', 4: 'direccion',
-  5: 'direccion', 6: 'recinto', 7: 'centro', 8: 'subcentro',
-  9: 'instituto', 10: 'servicio', 11: 'facultad', 12: 'escuela',
-}
-
 const descendientes = (id: string): Unidad[] => {
   const salida: Unidad[] = []
+  const visitados = new Set<string>([id])
   const pila = [id]
   while (pila.length) {
     const actual = pila.pop()!
-    for (const h of hijosDe(actual)) { salida.push(h); pila.push(h.id) }
+    for (const h of hijosDe(actual)) {
+      if (visitados.has(h.id)) continue   // evita colgarse ante un ciclo en padreId
+      visitados.add(h.id)
+      salida.push(h)
+      pila.push(h.id)
+    }
   }
   return salida
 }
@@ -43,8 +42,17 @@ function alcance(f: Filtro): Unidad[] {
   return UNIDADES
 }
 
-function filaDe(u: Unidad): FilaUnidad {
-  const ind = indicadoresDe(u.id)
+/** Indicadores de la unidad que respetan categoría y estado del filtro vigente. */
+function indicadoresFiltrados(unidadId: string, f: Filtro): Indicador[] {
+  let ind = indicadoresDe(unidadId)
+  if (f.categoria !== 'todas') ind = ind.filter(i => i.categoria === f.categoria)
+  if (f.estado !== 'todos')
+    ind = ind.filter(i => serieDe(i.id).at(-1)?.semaforo === f.estado)
+  return ind
+}
+
+function filaDe(u: Unidad, f: Filtro): FilaUnidad {
+  const ind = indicadoresFiltrados(u.id, f)
   const ultimos = ind.map(i => serieDe(i.id).at(-1)!)
   const cumplimiento = ind.length
     ? ultimos.reduce((a, p) => a + p.cumplimiento, 0) / ind.length : 0
@@ -60,11 +68,20 @@ function filaDe(u: Unidad): FilaUnidad {
   }
 }
 
+/** La caché de filas debe distinguir el filtro vigente: categoría y estado
+ *  cambian qué indicadores entran en el cálculo de cada unidad. */
 const cacheFila = new Map<string, FilaUnidad>()
-const fila = (u: Unidad): FilaUnidad => {
-  let f = cacheFila.get(u.id)
-  if (!f) { f = filaDe(u); cacheFila.set(u.id, f) }
-  return f
+const claveFila = (u: Unidad, f: Filtro): string => `${u.id}::${f.categoria}::${f.estado}`
+const fila = (u: Unidad, f: Filtro): FilaUnidad => {
+  const clave = claveFila(u, f)
+  let fl = cacheFila.get(clave)
+  if (!fl) { fl = filaDe(u, f); cacheFila.set(clave, fl) }
+  return fl
+}
+/** Filtro neutro para llamadas que no traen uno explícito (p. ej. la red territorial). */
+const SIN_FILTRO: Filtro = {
+  nivel: null, areaId: null, unidadId: null,
+  periodo: 'mes', categoria: 'todas', estado: 'todos',
 }
 
 export const mockDataSource: DataSource = {
@@ -76,10 +93,12 @@ export const mockDataSource: DataSource = {
     if (nivel === 12) return UNIDADES.filter(u => u.tipo === 'facultad')
     if (nivel === null || nivel === 2 || nivel === 11)
       return UNIDADES.filter(u => u.tipo === 'vicerrectoria')
-    if (nivel !== null && [6, 7, 8].includes(nivel)) return []   // territorial: sin nivel intermedio
-    // Para direcciones y organismos, el área es su unidad padre.
-    const tipo = TIPO_POR_NIVEL[nivel!]
-    const padres = new Set(UNIDADES.filter(u => u.tipo === tipo).map(u => u.padreId))
+    if ([6, 7, 8].includes(nivel)) return []   // territorial: sin nivel intermedio
+    // El área es la unidad padre de las unidades de este nivel. Se deriva por
+    // `nivel`, no por `tipo`: niveles 3, 4 y 5 comparten tipo 'direccion' pero
+    // corresponden a familias de padres distintas (direcciones especializadas,
+    // Investigación y Postgrado, Extensión).
+    const padres = new Set(UNIDADES.filter(u => u.nivel === nivel).map(u => u.padreId))
     return UNIDADES.filter(u => padres.has(u.id))
   },
 
@@ -89,13 +108,7 @@ export const mockDataSource: DataSource = {
     return lista
   },
 
-  getIndicadores(unidadId, f) {
-    let ind: Indicador[] = indicadoresDe(unidadId)
-    if (f.categoria !== 'todas') ind = ind.filter(i => i.categoria === f.categoria)
-    if (f.estado !== 'todos')
-      ind = ind.filter(i => serieDe(i.id).at(-1)?.semaforo === f.estado)
-    return ind
-  },
+  getIndicadores: (unidadId, f) => indicadoresFiltrados(unidadId, f),
 
   getSerie: serieDe,
   getUltimo: (id) => serieDe(id).at(-1),
@@ -113,18 +126,35 @@ export const mockDataSource: DataSource = {
     const cumplimiento = ultimos.length
       ? ultimos.reduce((a, p) => a + p.cumplimiento, 0) / ultimos.length : 0
 
-    const filas = unidades.filter(u => indicadoresDe(u.id).length).map(fila)
+    const filas = unidades.filter(u => indicadoresDe(u.id).length).map(u => fila(u, f))
     const orden = [...filas].sort((a, b) => b.cumplimiento - a.cumplimiento)
+
+    // `mejores` y `enAlerta` nunca deben solaparse. Con 10 unidades o más, los
+    // primeros/últimos 5 ya son disjuntos. Con menos, se reparte por la mitad;
+    // con menos de 2 unidades no hay "alerta" que mostrar por separado.
+    const n = orden.length
+    let mejores: FilaUnidad[]
+    let enAlerta: FilaUnidad[]
+    if (n < 2) {
+      mejores = orden.slice(0, 5)
+      enAlerta = []
+    } else if (n < 10) {
+      const mitad = Math.ceil(n / 2)
+      mejores = orden.slice(0, mitad)
+      enAlerta = orden.slice(mitad).reverse()
+    } else {
+      mejores = orden.slice(0, 5)
+      enAlerta = orden.slice(-5).reverse()
+    }
 
     return {
       cumplimiento, semaforo: clasificar(cumplimiento),
       totalIndicadores: ind.length, porSemaforo,
-      mejores: orden.slice(0, 5),
-      enAlerta: orden.slice(-5).reverse(),
+      mejores, enAlerta,
     }
   },
 
-  getFilas: (f) => alcance(f).map(fila),
+  getFilas: (f) => alcance(f).map(u => fila(u, f)),
 
-  getTerritoriales: () => UNIDADES.filter(u => u.coords).map(fila),
+  getTerritoriales: () => UNIDADES.filter(u => u.coords).map(u => fila(u, SIN_FILTRO)),
 }

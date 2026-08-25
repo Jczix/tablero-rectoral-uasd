@@ -3,6 +3,23 @@ import type {
   CategoriaIndicador, Semaforo,
 } from './tipos'
 
+/**
+ * `DataSource` es deliberadamente síncrona: el tablero es de kiosco y debe
+ * pintar al instante, sin estados de carga. Las vistas siempre leen desde un
+ * almacén en memoria ya poblado, nunca esperan una promesa.
+ *
+ * Cuando exista un origen real, `ApiDataSource` implementará esta misma
+ * interfaz sobre ese almacén: al arrancar (y luego periódicamente, o vía
+ * websocket/SSE) hidrata el almacén en segundo plano con llamadas
+ * asíncronas a la API institucional, y cada método de `DataSource` sigue
+ * leyendo de forma síncrona el snapshot ya cargado. Cuando el almacén se
+ * actualiza, `ApiDataSource` notifica a los suscriptores (p. ej. un
+ * `store` de estado externo con `subscribe`) para que las vistas
+ * refresquen su lectura, sin que su código cambie una sola línea: la
+ * frontera `DataSource` se mantiene, solo cambia quién hidrata el almacén
+ * y cuándo.
+ */
+
 export type Periodo = 'mes' | 'trimestre' | 'semestre' | 'anio' | 'comparativo'
 export type EstadoFiltro = 'todos' | 'verde' | 'ambar' | 'rojo'
 

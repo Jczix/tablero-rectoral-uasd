@@ -79,4 +79,53 @@ describe('MockDataSource', () => {
   it('es estable entre llamadas', () => {
     expect(ds.getResumen(base)).toEqual(ds.getResumen(base))
   })
+
+  // --- Corrección de hallazgos de revisión ---
+
+  it('getAreas no mezcla las direcciones de los niveles 3, 4 y 5', () => {
+    // Los tres niveles comparten tipo 'direccion', pero cuelgan de padres
+    // distintos: derivar el área por tipo (bug original) los mezclaba a todos
+    // bajo la misma unión de padres.
+    expect(ds.getAreas(1).map(u => u.id)).toEqual(['rectoria'])
+    expect(ds.getAreas(2).every(u => u.tipo === 'vicerrectoria')).toBe(true)
+
+    const areas3 = ds.getAreas(3)
+    expect(areas3.map(u => u.id).sort()).toEqual(['rectoria', 'vic-admin', 'vic-docente'].sort())
+
+    const areas4 = ds.getAreas(4)
+    expect(areas4).toHaveLength(1)
+    expect(areas4[0].id).toBe('vic-invpos')
+
+    const areas5 = ds.getAreas(5)
+    expect(areas5).toHaveLength(1)
+    expect(areas5[0].id).toBe('vic-extension')
+  })
+
+  it('las filas de getResumen respetan la categoría del filtro, no solo el agregado', () => {
+    // invpos-9 tiene 3 indicadores en rojo de categoría 'servicio' y 1 de 'proceso':
+    // si la fila ignorara el filtro, ambos casos darían el mismo indicadoresEnRojo.
+    const conServicio = ds.getResumen({ ...base, unidadId: 'invpos-9', categoria: 'servicio' })
+    const conProceso = ds.getResumen({ ...base, unidadId: 'invpos-9', categoria: 'proceso' })
+    expect(conServicio.mejores[0].indicadoresEnRojo).toBe(3)
+    expect(conProceso.mejores[0].indicadoresEnRojo).toBe(1)
+  })
+
+  it('mejores y enAlerta nunca se solapan, incluso con alcances pequeños', () => {
+    // Facultad de Salud: 9 unidades (1 facultad + 8 escuelas).
+    const facSalud = ds.getResumen({ ...base, unidadId: 'fac-salud' })
+    const idsSalud = new Set(facSalud.mejores.map(f => f.unidad.id))
+    expect(facSalud.enAlerta.every(f => !idsSalud.has(f.unidad.id))).toBe(true)
+    expect(facSalud.mejores.length + facSalud.enAlerta.length).toBe(9)
+
+    // Facultad de Ciencias Jurídicas: 3 unidades (1 facultad + 2 escuelas).
+    const facJuridicas = ds.getResumen({ ...base, unidadId: 'fac-juridicas' })
+    const idsJuridicas = new Set(facJuridicas.mejores.map(f => f.unidad.id))
+    expect(facJuridicas.enAlerta.every(f => !idsJuridicas.has(f.unidad.id))).toBe(true)
+    expect(facJuridicas.mejores.length + facJuridicas.enAlerta.length).toBe(3)
+
+    // Una unidad sin descendencia: solo cabe en "mejores"; no hay alerta que mostrar.
+    const dirRegistro = ds.getResumen({ ...base, unidadId: 'dir-registro' })
+    expect(dirRegistro.mejores).toHaveLength(1)
+    expect(dirRegistro.enAlerta).toHaveLength(0)
+  })
 })
