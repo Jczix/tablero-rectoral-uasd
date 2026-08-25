@@ -11,7 +11,9 @@ import {
 // tipo de unidad (centros/subcentros comparten un set común; el resto cae en
 // un respaldo genérico redactado a mano). Ver task-3-report.md para el
 // detalle de qué unidades quedaron en cada caso.
-function conjuntoDe(unidadId: string, tipo: string): ConjuntoTextos {
+// Exportada solo para que las pruebas puedan verificar, unidad por unidad,
+// que nunca devuelve un conjunto indefinido o incompleto (ver catalogo.test.ts).
+export function conjuntoDe(unidadId: string, tipo: string): ConjuntoTextos {
   // 'sede-central' es de tipo 'rectoria' en el padrón (no 'recinto') pero no
   // tiene bloque propio en el documento fuente: se le da el set genérico de
   // recinto, por ser la sede de Santo Domingo (desviación autorizada, ver brief).

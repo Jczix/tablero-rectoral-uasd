@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { INDICADORES, indicadoresDe } from './catalogo'
+import { INDICADORES, indicadoresDe, conjuntoDe } from './catalogo'
 import { UNIDADES } from './unidades'
 
 describe('catálogo de indicadores', () => {
@@ -58,6 +58,21 @@ describe('catálogo de indicadores', () => {
     const genericas = escuelas.filter(e =>
       indicadoresDe(e.id).map(i => i.nombre).includes('Estudiantes matriculados en la escuela'))
     expect(genericas.map(e => e.id).sort()).toEqual([...SIN_TEXTO_PROPIO].sort())
+  })
+
+  it('resuelve un conjunto completo de 10+10 textos para cada una de las 158 unidades', () => {
+    // Regresión del bug real de esta tarea: conjuntoDe devolvía `undefined`
+    // para las 42 unidades que dependían de un respaldo genérico no
+    // exportado, y el TypeError solo aparecía al construir INDICADORES en la
+    // carga del módulo, sin decir a qué unidad pertenecía. Esta prueba falla
+    // señalando el id de la primera unidad afectada, sin que el fallo pueda
+    // repetirse en silencio.
+    for (const u of UNIDADES) {
+      const c = conjuntoDe(u.id, u.tipo)
+      expect(c, `conjuntoDe(${u.id}) no debe ser undefined`).toBeDefined()
+      expect(c.servicio, `${u.id}: conjunto.servicio`).toHaveLength(10)
+      expect(c.proceso, `${u.id}: conjunto.proceso`).toHaveLength(10)
+    }
   })
 
   it('no usa respaldo genérico para ninguna facultad ni recinto', () => {

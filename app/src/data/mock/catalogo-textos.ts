@@ -2381,6 +2381,114 @@ export const SUBCENTRO: ConjuntoTextos = {
     ]
   }
 
+export const ESCUELA: ConjuntoTextos = {
+    "servicio": [
+      "Estudiantes matriculados en la escuela",
+      "Nuevos ingresos incorporados a la carrera",
+      "Egresados graduados de la escuela",
+      "Estudiantes beneficiados por tutorías académicas",
+      "Docentes capacitados en la disciplina",
+      "Usuarios atendidos por laboratorios de la escuela",
+      "Participantes en actividades de extensión de la escuela",
+      "Investigadores vinculados a la escuela",
+      "Convenios académicos gestionados por la escuela",
+      "Nivel de satisfacción de estudiantes con la escuela"
+    ],
+    "proceso": [
+      "Asignaturas impartidas por la escuela",
+      "Secciones habilitadas por cuatrimestre",
+      "Planes de estudio actualizados",
+      "Tiempo promedio de respuesta a solicitudes estudiantiles",
+      "Cumplimiento de la programación docente",
+      "Procesos de evaluación docente ejecutados",
+      "Productividad académica de la escuela",
+      "Errores detectados en actas de calificación",
+      "Seguimiento a egresados de la escuela",
+      "Cumplimiento del POA de la escuela"
+    ]
+  }
+
+export const DIRECCION: ConjuntoTextos = {
+    "servicio": [
+      "Solicitudes atendidas por la dirección",
+      "Usuarios beneficiados por los servicios de la dirección",
+      "Proyectos gestionados por la dirección",
+      "Convenios formalizados por la dirección",
+      "Actividades institucionales realizadas",
+      "Beneficiarios de programas de la dirección",
+      "Casos atendidos y resueltos",
+      "Informes técnicos elaborados",
+      "Unidades asesoradas por la dirección",
+      "Nivel de satisfacción de usuarios de la dirección"
+    ],
+    "proceso": [
+      "Tiempo promedio de respuesta a solicitudes",
+      "Procesos administrativos ejecutados",
+      "Cumplimiento del calendario de actividades",
+      "Proyectos monitoreados por la dirección",
+      "Informes de seguimiento entregados",
+      "Productividad del personal técnico",
+      "Errores detectados en la gestión de expedientes",
+      "Procesos automatizados de la dirección",
+      "Riesgos operativos identificados",
+      "Cumplimiento del POA de la dirección"
+    ]
+  }
+
+export const ORGANISMO: ConjuntoTextos = {
+    "servicio": [
+      "Solicitudes institucionales atendidas",
+      "Casos evaluados y resueltos",
+      "Dictámenes y opiniones emitidos",
+      "Autoridades y unidades asesoradas",
+      "Reuniones y sesiones realizadas",
+      "Acuerdos y resoluciones formalizados",
+      "Usuarios atendidos por el organismo",
+      "Actividades institucionales coordinadas",
+      "Informes institucionales elaborados",
+      "Nivel de satisfacción con el organismo"
+    ],
+    "proceso": [
+      "Tiempo promedio de emisión de dictámenes",
+      "Expedientes revisados por el organismo",
+      "Cumplimiento del calendario de sesiones",
+      "Acuerdos monitoreados hasta su cierre",
+      "Procesos institucionales supervisados",
+      "Riesgos institucionales identificados",
+      "Errores detectados en expedientes revisados",
+      "Productividad del organismo",
+      "Informes de seguimiento evaluados",
+      "Cumplimiento del POA del organismo"
+    ]
+  }
+
+export const RECINTO: ConjuntoTextos = {
+    "servicio": [
+      "Estudiantes matriculados en el {nombre}.",
+      "Nuevos ingresos incorporados al recinto.",
+      "Egresados graduados en el recinto.",
+      "Estudiantes beneficiados por servicios estudiantiles.",
+      "Usuarios atendidos por Biblioteca del recinto.",
+      "Participantes en programas de educación continua.",
+      "Participantes en programas de extensión y vinculación.",
+      "Investigadores beneficiados por servicios académicos.",
+      "Comunidades beneficiadas por proyectos universitarios.",
+      "Índice de satisfacción de usuarios del recinto."
+    ],
+    "proceso": [
+      "Secciones académicas impartidas.",
+      "Procesos de inscripción ejecutados.",
+      "Procesos de reinscripción completados.",
+      "Proyectos de investigación ejecutados.",
+      "Actividades de extensión desarrolladas.",
+      "Procesos administrativos gestionados.",
+      "Tiempo promedio de respuesta a solicitudes estudiantiles.",
+      "Cumplimiento del calendario académico.",
+      "Ejecución del POA del recinto.",
+      "Cumplimiento de metas estratégicas regionales."
+    ]
+  }
+
 /** Ids de unidad del padrón que tienen un conjunto propio arriba. */
 export const CONJUNTO_POR_ID: Record<string, ConjuntoTextos> = {
   'rectoria': U_RECTORIA,
