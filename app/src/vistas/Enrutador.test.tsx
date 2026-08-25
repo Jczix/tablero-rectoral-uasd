@@ -29,7 +29,10 @@ describe('Enrutador', () => {
   it('con un nivel escogido muestra la rejilla de unidades', async () => {
     const usuario = montar({ tipo: 'nivel', valor: 6 })
     await usuario.click(screen.getByText('disparar'))
-    expect(screen.getByRole('heading', { name: 'Recintos' })).toBeInTheDocument()
+    // El título lleva además un contador de unidades ("Recintos · 4
+    // unidades"), añadido en la corrección de la Tarea 11 para que la
+    // rejilla avise cuánto contenido hay aunque no quepa en pantalla.
+    expect(screen.getByRole('heading', { name: /^Recintos/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Recinto Barahona/ })).toBeInTheDocument()
   })
 

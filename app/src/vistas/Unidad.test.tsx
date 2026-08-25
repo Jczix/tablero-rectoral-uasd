@@ -50,4 +50,24 @@ describe('Unidad', () => {
     await usuario.click(screen.getByRole('button', { name: 'Cerrar' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
+
+  it('atrapa el foco: Tab y Shift+Tab no se escapan hacia el fondo', async () => {
+    const usuario = montar('dir-registro')
+    await usuario.click(screen.getByText('Récords oficiales emitidos'))
+    const dialogo = screen.getByRole('dialog')
+    const cerrar = screen.getByRole('button', { name: 'Cerrar' })
+    expect(document.activeElement).toBe(cerrar)
+
+    // "Cerrar" es el único elemento enfocable dentro del diálogo (el gráfico
+    // no lo es), así que tabular desde él debe volver a él mismo — pero
+    // sobre todo, el foco nunca debe salir del diálogo hacia un chip de la
+    // barra de filtros o una tarjeta de la rejilla de fondo.
+    await usuario.tab()
+    expect(dialogo.contains(document.activeElement)).toBe(true)
+    expect(document.activeElement).toBe(cerrar)
+
+    await usuario.tab({ shift: true })
+    expect(dialogo.contains(document.activeElement)).toBe(true)
+    expect(document.activeElement).toBe(cerrar)
+  })
 })

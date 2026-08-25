@@ -6,11 +6,17 @@ import { TarjetaIndicador } from '../components/kpi/TarjetaIndicador'
 import { GraficoSerie } from '../components/graficos/GraficoSerie'
 import type { CategoriaIndicador } from '../data/tipos'
 
+/** Selector de elementos que el navegador considera enfocables por Tab. */
+const SELECTOR_ENFOCABLES =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), ' +
+  'select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
 export function Unidad() {
   const { filtro } = useFiltros()
   const [abierto, setAbierto] = useState<string | null>(null)
   const cerrarBotonRef = useRef<HTMLButtonElement>(null)
   const disparadorRef = useRef<HTMLElement | null>(null)
+  const dialogoRef = useRef<HTMLDivElement>(null)
 
   const u = filtro.unidadId ? porId(filtro.unidadId) : undefined
   const indicadores = u ? ds.getIndicadores(u.id, filtro) : []
@@ -25,10 +31,30 @@ export function Unidad() {
     else disparadorRef.current?.focus()
   }, [detalle])
 
+  // Trampa de foco: mientras el diálogo está abierto, Tab y Shift+Tab deben
+  // ciclar solo entre sus propios elementos enfocables. Sin esto, Tab se
+  // escapaba hacia un chip de la barra de filtros oculto detrás del velo, y
+  // Shift+Tab saltaba a una tarjeta de la rejilla de fondo: el velo bloquea
+  // el clic pero no el foco por teclado si no se intercepta explícitamente.
   useEffect(() => {
     if (!detalle) return
     const alTeclado = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setAbierto(null)
+      if (e.key === 'Escape') { setAbierto(null); return }
+      if (e.key !== 'Tab') return
+      const raiz = dialogoRef.current
+      if (!raiz) return
+      const enfocables = Array.from(raiz.querySelectorAll<HTMLElement>(SELECTOR_ENFOCABLES))
+      if (!enfocables.length) { e.preventDefault(); return }
+      const primero = enfocables[0]
+      const ultimo = enfocables[enfocables.length - 1]
+      const activo = document.activeElement
+      if (e.shiftKey && activo === primero) {
+        e.preventDefault()
+        ultimo.focus()
+      } else if (!e.shiftKey && (activo === ultimo || !raiz.contains(activo))) {
+        e.preventDefault()
+        primero.focus()
+      }
     }
     document.addEventListener('keydown', alTeclado)
     return () => document.removeEventListener('keydown', alTeclado)
@@ -74,7 +100,7 @@ export function Unidad() {
       </div>
 
       {detalle && (
-        <div role="dialog" aria-modal="true" aria-label={detalle.nombre}
+        <div ref={dialogoRef} role="dialog" aria-modal="true" aria-label={detalle.nombre}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-8">
           <div className="w-full max-w-4xl rounded-2xl bg-panel-2 p-6 ring-1 ring-white/15">
             <div className="mb-1 flex items-start justify-between gap-4">

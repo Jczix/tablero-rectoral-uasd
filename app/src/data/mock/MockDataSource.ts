@@ -52,6 +52,25 @@ function indicadoresFiltrados(unidadId: string, f: Filtro): Indicador[] {
 }
 
 /**
+ * Indicadores de la unidad que entran en el CÁLCULO de su desempeño: respeta
+ * categoría (tiene sentido preguntar "¿qué % de mis indicadores de servicio
+ * están en meta?"), pero deliberadamente IGNORA `estado`. `estado` filtra qué
+ * se está *listando*, no de qué se calcula el desempeño; y "qué se está
+ * listando" es distinto según la vista: en la vista de unidad son indicadores
+ * (ver `indicadoresFiltrados`, que sí aplica estado), pero en la rejilla de
+ * nivel son unidades — filtrar antes por estado dejaría, para cada unidad,
+ * solo el subconjunto de indicadores que ya está en ese estado, y el % en
+ * meta calculado sobre "solo los que están en rojo" da cero por construcción
+ * para cualquier unidad. `Nivel.tsx` filtra las FILAS resultantes por su
+ * propio semáforo, no los indicadores de entrada.
+ */
+function indicadoresParaCalculo(unidadId: string, f: Filtro): Indicador[] {
+  let ind = indicadoresDe(unidadId)
+  if (f.categoria !== 'todas') ind = ind.filter(i => i.categoria === f.categoria)
+  return ind
+}
+
+/**
  * El desempeño de una unidad es el PORCENTAJE DE SUS INDICADORES EN META
  * (verde), no el promedio de sus cumplimientos individuales. Promediar
  * cumplimientos apiña a las 158 unidades del catálogo entre 89.5% y 106.9%
@@ -63,7 +82,7 @@ function indicadoresFiltrados(unidadId: string, f: Filtro): Indicador[] {
  * `porcentajeEnMeta` y `clasificarUnidad` en `generador.ts`.
  */
 function filaDe(u: Unidad, f: Filtro): FilaUnidad {
-  const ind = indicadoresFiltrados(u.id, f)
+  const ind = indicadoresParaCalculo(u.id, f)
   const ultimos = ind.map(i => serieDe(i.id).at(-1)!)
   const cumplimiento = porcentajeEnMeta(ultimos.map(p => p.semaforo))
   // Minigráfico: MISMA métrica que `cumplimiento` (% de indicadores en
@@ -81,10 +100,11 @@ function filaDe(u: Unidad, f: Filtro): FilaUnidad {
   }
 }
 
-/** La caché de filas debe distinguir el filtro vigente: categoría y estado
- *  cambian qué indicadores entran en el cálculo de cada unidad. */
+/** La caché de filas solo necesita distinguir la categoría: es lo único que
+ *  cambia qué indicadores entran en el cálculo de cada unidad (`estado` ya
+ *  no participa en `filaDe`, ver `indicadoresParaCalculo`). */
 const cacheFila = new Map<string, FilaUnidad>()
-const claveFila = (u: Unidad, f: Filtro): string => `${u.id}::${f.categoria}::${f.estado}`
+const claveFila = (u: Unidad, f: Filtro): string => `${u.id}::${f.categoria}`
 const fila = (u: Unidad, f: Filtro): FilaUnidad => {
   const clave = claveFila(u, f)
   let fl = cacheFila.get(clave)
