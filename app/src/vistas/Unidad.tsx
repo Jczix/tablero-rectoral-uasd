@@ -88,7 +88,7 @@ export function Unidad() {
     if (!lista.length) return null
     return (
       <section className="mt-6 first:mt-0">
-        <h3 className="mb-3 text-xs uppercase tracking-wide text-white/50">{titulo}</h3>
+        <h3 className="mb-3 text-xs uppercase tracking-wide text-white/70">{titulo}</h3>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
           {lista.map(i => (
             <TarjetaIndicador key={i.id} indicador={i}
@@ -103,7 +103,7 @@ export function Unidad() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden p-6">
-      <div className="shrink-0 text-xs text-white/45">{ruta}</div>
+      <div className="shrink-0 text-xs text-white/70">{ruta}</div>
       <h2 className="shrink-0 text-2xl font-semibold">{u.nombre}</h2>
 
       <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">

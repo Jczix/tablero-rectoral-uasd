@@ -15,8 +15,8 @@ export function GraficoBarras({ titulo, filas, onClic }: Props) {
   const tope = 100
   return (
     <div data-testid={titulo} className="rounded-xl bg-panel-2 p-4 ring-1 ring-white/10">
-      <div className="mb-3 text-xs uppercase tracking-wide text-white/50">
-        {titulo} <span className="normal-case text-white/30">· % de indicadores en meta</span>
+      <div className="mb-3 text-xs uppercase tracking-wide text-white/70">
+        {titulo} <span className="normal-case text-white/60">· % de indicadores en meta</span>
       </div>
       <ul className="space-y-2">
         {filas.map(f => (

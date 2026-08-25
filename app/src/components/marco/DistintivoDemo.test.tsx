@@ -8,6 +8,22 @@ describe('DistintivoDemo', () => {
     expect(screen.getByText('DATOS SIMULADOS — DEMO')).toBeInTheDocument()
   })
 
+  it('no flota sobre el contenido: no usa posicionamiento fijo', () => {
+    // Como `fixed bottom-4 right-4` se posaba encima de la cuarta entrada de
+    // "Requieren atención" en la portada y del pie de "Carga por ventanilla"
+    // en Servicios. Vive en la franja del encabezado, con carril propio.
+    render(<DistintivoDemo />)
+    const distintivo = screen.getByText('DATOS SIMULADOS — DEMO')
+    expect(distintivo.className).not.toMatch(/fixed/)
+    expect(distintivo.className).not.toMatch(/absolute/)
+  })
+
+  it('conserva el tamaño legible a distancia de televisor', () => {
+    render(<DistintivoDemo />)
+    expect(screen.getByText('DATOS SIMULADOS — DEMO').className)
+      .toMatch(/text-base/)
+  })
+
   it('se oculta con la tecla D', () => {
     render(<DistintivoDemo />)
     act(() => { fireEvent.keyDown(window, { key: 'd' }) })

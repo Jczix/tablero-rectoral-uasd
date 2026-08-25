@@ -94,7 +94,7 @@ export function Rectoral() {
 
       <div className="grid min-h-0 gap-3 xl:grid-cols-[3fr_2fr]">
         <div className="flex min-h-0 flex-col rounded-xl bg-panel-2 p-3 ring-1 ring-white/10">
-          <div className="mb-1 shrink-0 text-xs uppercase tracking-wide text-white/50">
+          <div className="mb-1 shrink-0 text-xs uppercase tracking-wide text-white/70">
             Red territorial
           </div>
           <div className="min-h-0 flex-1">
@@ -116,7 +116,7 @@ export function Rectoral() {
                 </div>
                 <div className="mt-1 text-3xl font-semibold tabular-nums">
                   {f.cumplimiento.toFixed(1)}%
-                  <span className="ml-1 text-xs font-normal text-white/40">en meta</span>
+                  <span className="ml-1 text-xs font-normal text-white/70">en meta</span>
                 </div>
                 <Minigrafico datos={f.serie} estado={f.semaforo} />
               </button>

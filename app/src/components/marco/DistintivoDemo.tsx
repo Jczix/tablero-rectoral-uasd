@@ -10,6 +10,13 @@ import { useEffect, useState } from 'react'
  * rótulo secundario del tablero) con `font-semibold` y buen contraste: se
  * lee a distancia de televisor sin robarle protagonismo a los KPI, que
  * siguen siendo mucho más grandes.
+ *
+ * VIVE EN LA FRANJA DEL ENCABEZADO, con carril propio. Antes era
+ * `fixed bottom-4 right-4`, y ahí se posaba encima de la cuarta entrada de
+ * "Requieren atención" en la portada y del pie de "Carga por ventanilla" en
+ * Servicios; además perdía legibilidad al quedar sobre una tarjeta clara.
+ * En el encabezado no puede tapar nada en ninguna vista, porque el
+ * encabezado no se superpone al contenido: lo empuja.
  */
 export function DistintivoDemo() {
   const [visible, setVisible] = useState(true)
@@ -38,11 +45,13 @@ export function DistintivoDemo() {
     return () => window.removeEventListener('keydown', alTeclado)
   }, [])
 
-  if (!visible) return null
+  // Se reserva el carril aunque esté oculto: si el distintivo desapareciera
+  // del flujo, el encabezado se reacomodaría y el reloj daría un salto.
+  if (!visible) return <div aria-hidden className="shrink-0" />
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-50 rounded-md
-                    bg-black/70 px-4 py-2 text-base font-semibold
-                    tracking-wide text-white ring-1 ring-white/20 shadow-lg">
+    <div className="shrink-0 rounded-md bg-black/40 px-4 py-2 text-base
+                    font-semibold tracking-wide text-white
+                    ring-1 ring-white/25">
       DATOS SIMULADOS — DEMO
     </div>
   )

@@ -28,11 +28,11 @@ export function TarjetaIndicador({ indicador, punto, serie, onClic }: Props) {
         <span className="text-3xl font-semibold tabular-nums">
           {formatear(punto.valor, indicador.tipoMetrica)}
         </span>
-        <span aria-label={flecha.etiqueta} className="text-sm text-white/50">
+        <span aria-label={flecha.etiqueta} className="text-sm text-white/70">
           {flecha.signo}
         </span>
       </div>
-      <div className="mt-1 flex items-center justify-between text-xs text-white/50">
+      <div className="mt-1 flex items-center justify-between text-xs text-white/70">
         <span>{`Meta ${formatear(punto.meta, indicador.tipoMetrica)}`}</span>
         <span className="tabular-nums">{`${punto.cumplimiento.toFixed(1)}%`}</span>
       </div>

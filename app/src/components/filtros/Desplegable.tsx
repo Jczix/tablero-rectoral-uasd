@@ -124,7 +124,7 @@ export function Desplegable({ etiqueta, opciones, valor, onCambio, buscable }: P
 
   return (
     <div ref={contenedor} onBlur={alPerderFoco} className="relative min-w-[13rem] flex-1">
-      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-white/50">
+      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-white/70">
         {etiqueta}
       </div>
       <button
@@ -140,7 +140,7 @@ export function Desplegable({ etiqueta, opciones, valor, onCambio, buscable }: P
                    disabled:hover:ring-white/10"
       >
         <span className="truncate">{escogida?.texto ?? 'Todas'}</span>
-        <span aria-hidden className="text-white/40">▾</span>
+        <span aria-hidden className="text-white/70">▾</span>
       </button>
 
       {abierto && (

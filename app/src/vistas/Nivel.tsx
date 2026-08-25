@@ -107,7 +107,7 @@ export function Nivel() {
                   </div>
                   <div className="mt-1 text-2xl font-semibold tabular-nums">
                     {f.cumplimiento.toFixed(1)}%
-                    <span className="ml-1 text-xs font-normal text-white/40">en meta</span>
+                    <span className="ml-1 text-xs font-normal text-white/70">en meta</span>
                   </div>
                   {/* Las tres señales de la tarjeta (semáforo, % en meta y
                       el conteo de fallos) se definían de tres maneras

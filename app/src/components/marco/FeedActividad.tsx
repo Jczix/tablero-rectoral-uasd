@@ -60,13 +60,13 @@ export function FeedActividad() {
   return (
     <div data-testid="feed-actividad"
          className="h-full overflow-hidden rounded-xl bg-panel-2 p-3 ring-1 ring-white/10">
-      <div className="mb-2 text-xs uppercase tracking-wide text-white/50">
+      <div className="mb-2 text-xs uppercase tracking-wide text-white/70">
         Actividad institucional en vivo
       </div>
       <ul className="space-y-1.5">
         {eventos.map(e => (
           <li key={e.clave} className="flex gap-3 text-sm text-white/75">
-            <span className="tabular-nums text-white/40">{e.hora}</span>
+            <span className="tabular-nums text-white/70">{e.hora}</span>
             <span className="truncate">{e.texto}</span>
           </li>
         ))}

@@ -83,7 +83,7 @@ export function Servicios() {
 
       <div className="grid min-h-0 gap-4 xl:grid-cols-[3fr_1fr]">
         <div className="flex flex-col overflow-hidden rounded-xl bg-panel-2 ring-1 ring-white/10">
-          <h3 className="shrink-0 px-4 pt-2 text-xs uppercase tracking-wide text-white/50">
+          <h3 className="shrink-0 px-4 pt-2 text-xs uppercase tracking-wide text-white/70">
             Catálogo de servicios · {filas.length}
           </h3>
           <div className="relative min-h-0 flex-1 p-1">
@@ -132,7 +132,7 @@ export function Servicios() {
                       </td>
                       <td className="px-4 py-1.5 tabular-nums">
                         {formatear(m.tiempoEmisionDias, 'dias')}
-                        <span className="text-white/40">
+                        <span className="text-white/70">
                           {` / meta ${m.metaTiempoDias}`}
                         </span>
                       </td>
@@ -151,7 +151,7 @@ export function Servicios() {
         </div>
 
         <div className="flex flex-col overflow-hidden rounded-xl bg-panel-2 p-4 ring-1 ring-white/10">
-          <div className="mb-3 shrink-0 text-xs uppercase tracking-wide text-white/50">
+          <div className="mb-3 shrink-0 text-xs uppercase tracking-wide text-white/70">
             Carga por ventanilla
           </div>
           <ul className="min-h-0 flex-1 space-y-3 overflow-y-auto">

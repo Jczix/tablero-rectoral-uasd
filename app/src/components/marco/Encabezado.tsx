@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ahora } from '../../data/reloj'
 import escudo from '../../assets/escudo-uasd.png'
+import { DistintivoDemo } from './DistintivoDemo'
 
 /** Período académico según el mes: la UASD opera en tres cuatrimestres. */
 function periodoAcademico(d: Date): string {
@@ -51,6 +52,7 @@ export function Encabezado() {
           Tablero Rectoral de Indicadores · {periodoAcademico(ahora())}
         </p>
       </div>
+      <DistintivoDemo />
       <Reloj />
     </header>
   )
