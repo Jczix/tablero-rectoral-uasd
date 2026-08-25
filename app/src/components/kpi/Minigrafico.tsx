@@ -5,10 +5,13 @@ import { COLOR } from './Semaforo'
 export function Minigrafico({ datos, estado }: { datos: number[]; estado: Estado }) {
   if (datos.length < 2) return null
   const min = Math.min(...datos), max = Math.max(...datos)
-  const rango = max - min || 1
+  const rango = max - min
+  // Una serie plana (rango 0) se centra verticalmente en vez de pegarse al
+  // borde inferior: pegada al fondo se lee como "en el mínimo" cuando en
+  // realidad es "sin cambio".
   const puntos = datos.map((v, i) => {
     const x = (i / (datos.length - 1)) * 100
-    const y = 28 - ((v - min) / rango) * 24
+    const y = rango === 0 ? 16 : 28 - ((v - min) / rango) * 24
     return `${x.toFixed(1)},${y.toFixed(1)}`
   }).join(' ')
 
