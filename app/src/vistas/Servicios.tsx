@@ -1,13 +1,27 @@
 import { useEffect, useRef, useState } from 'react'
 import { SERVICIOS, metricasServicio, cargaPorVentanilla } from '../data/mock/servicios'
+import { useFiltros } from '../state/FiltrosContext'
+import { EstadoVacio } from '../components/marco/EstadoVacio'
 import { Semaforo } from '../components/kpi/Semaforo'
 import { TarjetaKPI } from '../components/kpi/TarjetaKPI'
 import { formatear, formatearCompacto } from '../components/kpi/formato'
 
 export function Servicios() {
+  const { filtro } = useFiltros()
+
   const filas = SERVICIOS
     .map(s => ({ servicio: s, m: metricasServicio(s.id) }))
     .sort((a, b) => b.m.recaudacionRD - a.m.recaudacionRD)
+
+  // El filtro Estado recorta QUÉ SE LISTA, igual que en la rejilla de Nivel
+  // y en la tabla territorial: aquí lo que se lista es el catálogo de
+  // servicios, cada uno con su propio semáforo de tiempo de emisión. Los
+  // cuatro KPI de arriba siguen siendo los totales del mes completo: son
+  // cifras del catálogo entero y recortarlas por estado las volvería
+  // engañosas ("Recaudación del mes" no es la recaudación de los servicios
+  // en rojo).
+  const listadas = filtro.estado === 'todos'
+    ? filas : filas.filter(f => f.m.semaforo === filtro.estado)
 
   const totalSolicitudes = filas.reduce((a, f) => a + f.m.solicitudes, 0)
   const totalRecaudado = filas.reduce((a, f) => a + f.m.recaudacionRD, 0)
@@ -37,7 +51,7 @@ export function Servicios() {
       el.removeEventListener('scroll', comprobar)
       ro?.disconnect()
     }
-  }, [filas.length])
+  }, [listadas.length])
 
   return (
     <div className="grid h-full grid-rows-[auto_auto_1fr] gap-3 overflow-hidden p-5">
@@ -84,10 +98,15 @@ export function Servicios() {
       <div className="grid min-h-0 gap-4 xl:grid-cols-[3fr_1fr]">
         <div className="flex flex-col overflow-hidden rounded-xl bg-panel-2 ring-1 ring-white/10">
           <h3 className="shrink-0 px-4 pt-2 text-xs uppercase tracking-wide text-white/70">
-            Catálogo de servicios · {filas.length}
+            Catálogo de servicios · {listadas.length}
           </h3>
           <div className="relative min-h-0 flex-1 p-1">
+            {listadas.length === 0 && (
+              <EstadoVacio que="servicio" ambito="este catálogo"
+                estado={filtro.estado} categoria="todas" />
+            )}
             <div ref={scrollRef} className="h-full overflow-y-auto">
+              {listadas.length > 0 && (
               <table className="w-full text-sm">
                 <thead className="sticky top-0 z-10 bg-panel-2 text-xs uppercase
                                   tracking-wide text-white/60">
@@ -102,7 +121,7 @@ export function Servicios() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filas.map(({ servicio, m }) => (
+                  {listadas.map(({ servicio, m }) => (
                     <tr key={servicio.id} className="border-b border-white/5">
                       <td className="px-4 py-1.5">
                         {servicio.nombre}
@@ -141,6 +160,7 @@ export function Servicios() {
                   ))}
                 </tbody>
               </table>
+              )}
             </div>
             {hayMasAbajo && (
               <div aria-hidden

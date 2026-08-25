@@ -3,6 +3,24 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ProveedorFiltros, useFiltros } from '../state/FiltrosContext'
 import { Territorial } from './Territorial'
+import type { EstadoFiltro } from '../data/source'
+import { useEffect } from 'react'
+
+function FijarEstado({ estado }: { estado: EstadoFiltro }) {
+  const { despachar } = useFiltros()
+  useEffect(() => {
+    despachar({ tipo: 'estado', valor: estado })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  return null
+}
+
+const montarConEstado = (estado: EstadoFiltro) => {
+  render(
+    <ProveedorFiltros><FijarEstado estado={estado} /><Territorial /></ProveedorFiltros>
+  )
+  return userEvent.setup()
+}
 
 function Espia() {
   const { filtro } = useFiltros()
@@ -98,4 +116,18 @@ describe('Territorial', () => {
     expect(fila.getAttribute('aria-label')).toMatch(/Recinto Barahona/)
     expect(fila.getAttribute('aria-label')).toMatch(/detalle/i)
   })
+  it('el filtro Estado recorta la tabla pero deja el mapa completo', () => {
+    montarConEstado('rojo')
+    // El mapa sigue dibujando las 35 unidades: un mapa con la mitad de los
+    // puntos borrados no es un mapa filtrado, es un mapa roto.
+    expect(screen.getAllByRole('button', { name: /estudiantes/ }))
+      .toHaveLength(1 + 4 + 18 + 12)
+    // La tabla, en cambio, solo lista las incumplidas.
+    const filas = within(screen.getByRole('table')).getAllByRole('row').slice(1)
+    expect(filas.length).toBeGreaterThan(0)
+    expect(filas.length).toBeLessThan(35)
+    for (const f of filas)
+      expect(within(f).getByText('Incumplido')).toBeInTheDocument()
+  })
+
 })

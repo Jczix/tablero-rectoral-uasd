@@ -1,10 +1,26 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
-import { ProveedorFiltros } from '../state/FiltrosContext'
+import { useEffect } from 'react'
+import { ProveedorFiltros, useFiltros } from '../state/FiltrosContext'
 import { Servicios } from './Servicios'
+import type { EstadoFiltro } from '../data/source'
 
 const montar = () =>
   render(<ProveedorFiltros><Servicios /></ProveedorFiltros>)
+
+function FijarEstado({ estado }: { estado: EstadoFiltro }) {
+  const { despachar } = useFiltros()
+  useEffect(() => {
+    despachar({ tipo: 'estado', valor: estado })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  return null
+}
+
+const montarConEstado = (estado: EstadoFiltro) =>
+  render(
+    <ProveedorFiltros><FijarEstado estado={estado} /><Servicios /></ProveedorFiltros>
+  )
 
 describe('Servicios', () => {
   it('titula la vista con la unidad real de origen', () => {
@@ -53,4 +69,16 @@ describe('Servicios', () => {
     expect(tabla.queryByLabelText('Récord de Notas Oficial: se envía al MESCYT'))
       .not.toBeInTheDocument()
   })
+  it('el filtro Estado recorta el catálogo listado', () => {
+    montar()
+    const todas = within(screen.getByRole('table')).getAllByRole('row').length - 1
+
+    screen.getByRole('table')   // guarda: la tabla existe sin filtro
+    montarConEstado('rojo')
+    const tablas = screen.getAllByRole('table')
+    const filas = within(tablas[tablas.length - 1]).getAllByRole('row').length - 1
+    expect(filas).toBeGreaterThan(0)
+    expect(filas).toBeLessThan(todas)
+  })
+
 })

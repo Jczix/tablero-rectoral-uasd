@@ -4,6 +4,7 @@ import { useFiltros } from '../state/FiltrosContext'
 import { MapaRD } from '../components/mapa/MapaRD'
 import { Semaforo } from '../components/kpi/Semaforo'
 import { formatearCompacto } from '../components/kpi/formato'
+import { EstadoVacio } from '../components/marco/EstadoVacio'
 import type { FilaUnidad } from '../data/source'
 
 // 'sede-central' es de tipo 'rectoria' (no 'recinto'): al no aparecer en este
@@ -31,12 +32,20 @@ export function Territorial() {
   const { filtro, despachar } = useFiltros()
   const [orden, setOrden] = useState<Columna>('nombre')
 
-  const filas = [...ds.getTerritoriales(filtro)].sort((a, b) => {
+  const todas = [...ds.getTerritoriales(filtro)].sort((a, b) => {
     if (orden === 'cumplimiento') return b.cumplimiento - a.cumplimiento
     if (orden === 'matricula') return b.unidad.peso - a.unidad.peso
     const t = ORDEN_TIPO.indexOf(a.unidad.tipo) - ORDEN_TIPO.indexOf(b.unidad.tipo)
     return t !== 0 ? t : a.unidad.nombre.localeCompare(b.unidad.nombre, 'es')
   })
+
+  // El filtro Estado recorta LA TABLA, no el mapa: la red territorial se
+  // dibuja siempre completa (un mapa con la mitad de los puntos borrados no
+  // es un mapa filtrado, es un mapa roto), y la tabla de al lado es donde
+  // "solo las que están en rojo" se lee sin ambigüedad. Misma semántica que
+  // la rejilla de Nivel: cada fila conserva su % en meta real.
+  const filas = filtro.estado === 'todos'
+    ? todas : todas.filter(f => f.semaforo === filtro.estado)
 
   const seleccionar = (id: string) => despachar({ tipo: 'seleccionarUnidad', valor: id })
 
@@ -93,7 +102,12 @@ export function Territorial() {
           Unidades territoriales · {filas.length}
         </h2>
         <div className="relative min-h-0 flex-1 p-4">
+          {filas.length === 0 && (
+            <EstadoVacio que="unidad" ambito="la red territorial"
+              estado={filtro.estado} categoria={filtro.categoria} />
+          )}
           <div ref={scrollRef} className="h-full overflow-y-auto">
+            {filas.length > 0 && (
             <table className="w-full text-sm">
               <thead className="sticky top-0 z-10 bg-panel-2 text-xs uppercase tracking-wide">
                 <tr className="border-b border-white/10">
@@ -174,6 +188,7 @@ export function Territorial() {
                 })}
               </tbody>
             </table>
+            )}
           </div>
           {hayMasAbajo && (
             <div aria-hidden

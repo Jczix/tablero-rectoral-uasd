@@ -6,10 +6,18 @@ const ETIQUETA_CATEGORIA: Record<CategoriaIndicador, string> = {
   servicio: 'de servicio', proceso: 'de proceso',
 }
 
+type Que = 'unidad' | 'indicador' | 'servicio'
+
+/** Género gramatical de cada sustantivo, para que la frase concuerde. */
+const FEMENINO: Record<Que, boolean> = {
+  unidad: true, indicador: false, servicio: false,
+}
+
 interface Props {
-  /** Qué se está listando y no salió nada: 'unidad' o 'indicador'. */
-  que: 'unidad' | 'indicador'
-  /** Ámbito en palabras: 'esta unidad', 'este nivel', 'la Facultad de...'. */
+  /** Qué se está listando y no salió nada. */
+  que: Que
+  /** Ámbito en palabras, ya contraído si toca: 'esta unidad', 'este nivel',
+   *  'la red territorial', 'la Facultad de…'. Se le antepone "de". */
   ambito: string
   estado: EstadoFiltro
   categoria: CategoriaIndicador | 'todas'
@@ -24,16 +32,17 @@ interface Props {
  * para que se sepa cuál soltar.
  */
 export function EstadoVacio({ que, ambito, estado, categoria }: Props) {
-  const sustantivo = que === 'unidad' ? 'unidad' : 'indicador'
+  const femenino = FEMENINO[que]
+  const plural = que === 'servicio' ? 'servicios' : `${que}es`
   const califica = categoria !== 'todas' ? ` ${ETIQUETA_CATEGORIA[categoria]}` : ''
 
   const mensaje = estado !== 'todos'
-    ? `Ning${que === 'unidad' ? 'una' : 'ún'} ${sustantivo}${califica} de ${ambito} `
+    ? `Ning${femenino ? 'una' : 'ún'} ${que}${califica} de ${ambito} `
       + `está en estado ${ETIQUETA_ESTADO[estado]}.`
-    : `No hay ${sustantivo}es${califica} que mostrar en ${ambito}.`
+    : `No hay ${plural}${califica} que mostrar en ${ambito}.`
 
   const pista = estado !== 'todos'
-    ? `Cambia el filtro Estado para ver ${que === 'unidad' ? 'las demás unidades' : 'los demás indicadores'}.`
+    ? `Cambia el filtro Estado para ver ${femenino ? 'las' : 'los'} demás ${plural}.`
     : 'Retira algún filtro de la barra superior para ver más.'
 
   return (
