@@ -21,6 +21,16 @@ const VICERRECTORIAS = ['vic-docente', 'vic-admin', 'vic-invpos', 'vic-extension
 // la pantalla.
 const PUESTOS_POR_RANKING = 4
 
+/**
+ * Semáforo de un KPI institucional CONTRA SU META, no contra el valor
+ * crudo. `clasificar()` está calibrada 95/80 sobre el cumplimiento de un
+ * indicador respecto a su meta; aplicarla directamente a un porcentaje sin
+ * meta (78.4% de ejecución, 84.6% de POA, 82.1% de satisfacción) declaraba
+ * los tres en rojo o ámbar y dejaba la fila superior del tablero sin un
+ * solo verde. Las metas viven en `anclas.ts`, el punto único de corrección.
+ */
+const contraMeta = (valor: number, meta: number) => clasificar((valor / meta) * 100)
+
 export function Rectoral() {
   const { filtro, despachar } = useFiltros()
   const irA = (unidadId: string) =>
@@ -59,15 +69,20 @@ export function Rectoral() {
       detalle: 'Investiduras procesadas' },
     { titulo: 'Ejecución presupuestaria',
       valor: `${ANCLAS.ejecucionPresupuestariaPct}%`,
-      detalle: formatear(ANCLAS.presupuestoAnualRD, 'moneda'),
-      estado: clasificar(ANCLAS.ejecucionPresupuestariaPct) },
+      detalle: `${formatear(ANCLAS.presupuestoAnualRD, 'moneda')} · meta `
+        + `${ANCLAS.metaEjecucionPresupuestariaPct}%`,
+      estado: contraMeta(
+        ANCLAS.ejecucionPresupuestariaPct, ANCLAS.metaEjecucionPresupuestariaPct) },
     { titulo: 'Cumplimiento POA', valor: `${ANCLAS.cumplimientoPoaPct}%`,
-      detalle: `${resumen.totalIndicadores.toLocaleString('en-US')} indicadores`,
-      estado: clasificar(ANCLAS.cumplimientoPoaPct) },
+      detalle: `${resumen.totalIndicadores.toLocaleString('en-US')} indicadores · meta `
+        + `${ANCLAS.metaCumplimientoPoaPct}%`,
+      estado: contraMeta(
+        ANCLAS.cumplimientoPoaPct, ANCLAS.metaCumplimientoPoaPct) },
     { titulo: 'Satisfacción de usuarios',
       valor: `${ANCLAS.satisfaccionGeneralPct}%`,
-      detalle: 'Promedio institucional',
-      estado: clasificar(ANCLAS.satisfaccionGeneralPct) },
+      detalle: `Promedio institucional · meta ${ANCLAS.metaSatisfaccionGeneralPct}%`,
+      estado: contraMeta(
+        ANCLAS.satisfaccionGeneralPct, ANCLAS.metaSatisfaccionGeneralPct) },
   ]
 
   return (

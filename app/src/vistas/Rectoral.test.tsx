@@ -48,6 +48,35 @@ describe('Rectoral', () => {
     expect(screen.getByTestId('espia')).toHaveTextContent('vic-extension')
   })
 
+  it('clasifica los KPI institucionales contra su meta, no contra 95/80', () => {
+    montar()
+    // Con `clasificar()` aplicada al porcentaje crudo, la fila superior salía
+    // entera en rojo y ámbar: ejecución 78.4% "Incumplido", POA 84.6% y
+    // satisfacción 82.1% "En riesgo". Desde la puerta se leía "la
+    // universidad está en rojo", que es falso.
+    const estadoDe = (titulo: string) => {
+      const tarjeta = screen.getByText(titulo).closest('div')!.parentElement!
+      return within(tarjeta).getByRole('img').getAttribute('aria-label')
+    }
+    expect(estadoDe('Ejecución presupuestaria')).toBe('En meta')
+    expect(estadoDe('Cumplimiento POA')).toBe('En meta')
+    // Satisfacción sigue en ámbar contra su meta de 90%: el arreglo no es
+    // pintarlo todo de verde, es medir contra la referencia correcta.
+    expect(estadoDe('Satisfacción de usuarios')).toBe('En riesgo')
+  })
+
+  it('cada KPI con semáforo declara su meta, para que el color se pueda explicar', () => {
+    montar()
+    expect(screen.getByText(/meta 80%/)).toBeInTheDocument()
+    expect(screen.getByText(/meta 85%/)).toBeInTheDocument()
+    expect(screen.getByText(/meta 90%/)).toBeInTheDocument()
+  })
+
+  it('anuncia el presupuesto en millones, sin la abreviatura ambigua MM', () => {
+    montar()
+    expect(screen.getByText(/RD\$ 14,800 M/)).toBeInTheDocument()
+  })
+
   it('muestra los rankings de mejores y en alerta', () => {
     montar()
     expect(screen.getByText('Mejor desempeño')).toBeInTheDocument()
