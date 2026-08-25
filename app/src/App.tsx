@@ -1,7 +1,7 @@
 import { ProveedorFiltros } from './state/FiltrosContext'
 import { Encabezado } from './components/marco/Encabezado'
 import { BarraFiltros } from './components/filtros/BarraFiltros'
-import { Rectoral } from './vistas/Rectoral'
+import { Enrutador } from './vistas/Enrutador'
 
 export default function App() {
   return (
@@ -9,7 +9,7 @@ export default function App() {
       <div className="flex h-screen flex-col overflow-hidden bg-panel">
         <Encabezado />
         <BarraFiltros />
-        <main className="min-h-0 flex-1 overflow-hidden"><Rectoral /></main>
+        <main className="min-h-0 flex-1 overflow-hidden"><Enrutador /></main>
       </div>
     </ProveedorFiltros>
   )
