@@ -159,6 +159,39 @@ describe('reducir', () => {
   })
 })
 
+// --- Corrección de hallazgos de revisión de la Tarea 14 ---
+
+describe('la acción kiosco no apila historial', () => {
+  it('varias paradas automáticas seguidas dejan el historial vacío', () => {
+    let e = inicial
+    e = reducir(e, { tipo: 'kiosco', accion: { tipo: 'nivel', valor: 6 } })
+    e = reducir(e, { tipo: 'kiosco', accion: { tipo: 'seleccionarUnidad', valor: 'dir-registro' } })
+    e = reducir(e, { tipo: 'kiosco', accion: { tipo: 'seleccionarUnidad', valor: 'vic-docente' } })
+    expect(e.actual.unidadId).toBe('vic-docente')
+    expect(e.historial).toEqual([])
+  })
+
+  it('resuelve el filtro con la misma lógica que la acción envuelta', () => {
+    const conKiosco = reducir(inicial, {
+      tipo: 'kiosco', accion: { tipo: 'seleccionarUnidad', valor: 'esc-medicina' },
+    })
+    const sinKiosco = reducir(inicial, { tipo: 'seleccionarUnidad', valor: 'esc-medicina' })
+    expect(conKiosco.actual).toEqual(sinKiosco.actual)
+  })
+
+  it('la primera acción manual después de paradas automáticas sí se apila', () => {
+    let e = inicial
+    e = reducir(e, { tipo: 'kiosco', accion: { tipo: 'nivel', valor: 6 } })
+    e = reducir(e, { tipo: 'kiosco', accion: { tipo: 'seleccionarUnidad', valor: 'dir-registro' } })
+    expect(e.historial).toEqual([])
+    e = reducir(e, { tipo: 'estado', valor: 'rojo' })
+    expect(e.historial).toHaveLength(1)
+    // La entrada apilada es el filtro que dejó la última parada del
+    // kiosco, no un fantasma de las paradas anteriores.
+    expect(e.historial[0].unidadId).toBe('dir-registro')
+  })
+})
+
 // --- Corrección de hallazgos de revisión de la Tarea 7 ---
 
 describe('coherencia entre getAreas y la acción area', () => {

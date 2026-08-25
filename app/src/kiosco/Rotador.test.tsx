@@ -1,10 +1,24 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, act, fireEvent } from '@testing-library/react'
-import { ProveedorFiltros } from '../state/FiltrosContext'
+import { ProveedorFiltros, useFiltros } from '../state/FiltrosContext'
 import { Rotador } from './Rotador'
 
+/** Sonda de prueba: expone el largo del historial en el DOM para que los
+ * tests puedan comprobar que las paradas del kiosco no lo apilan. */
+function SondaHistorial() {
+  const { historial, despachar } = useFiltros()
+  return (
+    <>
+      <span data-testid="historial-largo">{historial.length}</span>
+      <button onClick={() => despachar({ tipo: 'estado', valor: 'rojo' })}>
+        acción manual de prueba
+      </button>
+    </>
+  )
+}
+
 const montar = () =>
-  render(<ProveedorFiltros><Rotador /></ProveedorFiltros>)
+  render(<ProveedorFiltros><Rotador /><SondaHistorial /></ProveedorFiltros>)
 
 describe('Rotador', () => {
   afterEach(() => vi.useRealTimers())
@@ -50,5 +64,77 @@ describe('Rotador', () => {
     act(() => { fireEvent.mouseMove(window) })
     act(() => { fireEvent.keyDown(window, { key: 'k' }) })
     expect(screen.queryByText('Área / Dependencia')).not.toBeInTheDocument()
+  })
+
+  // --- Corrección de hallazgos de revisión de la Tarea 14 ---
+
+  it('la tecla K originada dentro de la barra de filtros no reanuda la rotación', () => {
+    vi.useFakeTimers()
+    montar()
+    act(() => { fireEvent.mouseMove(window) })
+    const dentroDeFiltros = screen.getByText('Área / Dependencia')
+    act(() => { fireEvent.keyDown(dentroDeFiltros, { key: 'k' }) })
+    // Sigue detenido: la barra de filtros sigue visible, no reapareció el
+    // progressbar del kiosco.
+    expect(screen.getByText('Área / Dependencia')).toBeInTheDocument()
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+  })
+
+  it('la tecla K originada fuera de la barra de filtros sí reanuda la rotación', () => {
+    vi.useFakeTimers()
+    montar()
+    act(() => { fireEvent.mouseMove(window) })
+    act(() => { fireEvent.keyDown(document.body, { key: 'k' }) })
+    expect(screen.queryByText('Área / Dependencia')).not.toBeInTheDocument()
+    expect(screen.getByRole('progressbar')).toBeInTheDocument()
+  })
+
+  it('muestra un aviso de modo manual al tomar el control, y lo oculta al reanudar', () => {
+    vi.useFakeTimers()
+    montar()
+    expect(screen.queryByText(/modo manual/i)).not.toBeInTheDocument()
+    act(() => { fireEvent.mouseMove(window) })
+    expect(screen.getByText(/modo manual/i)).toBeInTheDocument()
+    act(() => { fireEvent.keyDown(window, { key: 'k' }) })
+    expect(screen.queryByText(/modo manual/i)).not.toBeInTheDocument()
+  })
+
+  it('reanuda la rotación sola tras 3 minutos de inactividad', () => {
+    vi.useFakeTimers()
+    montar()
+    act(() => { fireEvent.mouseMove(window) })
+    expect(screen.getByText('Área / Dependencia')).toBeInTheDocument()
+    act(() => { vi.advanceTimersByTime(3 * 60_000 + 1) })
+    expect(screen.queryByText('Área / Dependencia')).not.toBeInTheDocument()
+    expect(screen.getByRole('progressbar')).toBeInTheDocument()
+  })
+
+  it('cada interacción reinicia el plazo de reanudación automática', () => {
+    vi.useFakeTimers()
+    montar()
+    act(() => { fireEvent.mouseMove(window) })
+    // A los 2:59 el Rector vuelve a mover el mouse: el plazo se reinicia.
+    act(() => { vi.advanceTimersByTime(2 * 60_000 + 59_000) })
+    act(() => { fireEvent.mouseMove(window) })
+    act(() => { vi.advanceTimersByTime(2 * 60_000 + 59_000) })
+    // Todavía dentro de los 3 minutos desde la última interacción.
+    expect(screen.getByText('Área / Dependencia')).toBeInTheDocument()
+  })
+
+  it('las paradas automáticas del kiosco no apilan historial', () => {
+    vi.useFakeTimers()
+    montar()
+    act(() => { vi.advanceTimersByTime(25_000 * 3) })
+    expect(screen.getByTestId('historial-largo')).toHaveTextContent('0')
+  })
+
+  it('la primera acción manual sí se apila en el historial', () => {
+    vi.useFakeTimers()
+    montar()
+    act(() => { vi.advanceTimersByTime(25_000 * 2) })
+    act(() => { fireEvent.mouseMove(window) })
+    expect(screen.getByTestId('historial-largo')).toHaveTextContent('0')
+    act(() => { fireEvent.click(screen.getByText('acción manual de prueba')) })
+    expect(screen.getByTestId('historial-largo')).toHaveTextContent('1')
   })
 })

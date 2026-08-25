@@ -22,6 +22,7 @@ export type Accion =
   | { tipo: 'quitar'; valor: ClaveFiltro }
   | { tipo: 'atras' }
   | { tipo: 'limpiar' }
+  | { tipo: 'kiosco'; accion: Accion }
 
 /** Tope del historial: el tablero corre en modo kiosco durante días sin
  * recargar, así que el historial no puede crecer sin límite. */
@@ -117,6 +118,15 @@ export function reducir(e: EstadoFiltros, a: Accion): EstadoFiltros {
         : e
     case 'limpiar':
       return { actual: FILTRO_INICIAL, historial: [] }
+    case 'kiosco': {
+      // Una parada automática del ciclo del rotador no es una acción de
+      // la persona que opera el tablero: se resuelve con la misma lógica
+      // que su acción envuelta (para no duplicarla ni dejarla incoherente
+      // con nivel/área/unidad), pero el historial de "Atrás" se conserva
+      // tal cual estaba, así que esas paradas nunca quedan apiladas ahí.
+      const siguiente = reducir(e, a.accion)
+      return { actual: siguiente.actual, historial: e.historial }
+    }
   }
 }
 
