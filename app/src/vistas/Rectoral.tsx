@@ -10,6 +10,7 @@ import { GraficoBarras } from '../components/graficos/GraficoBarras'
 import { FeedActividad } from '../components/marco/FeedActividad'
 import { formatearCompacto, formatear } from '../components/kpi/formato'
 import { clasificar } from '../data/mock/generador'
+import { ahora } from '../data/reloj'
 
 const VICERRECTORIAS = ['vic-docente', 'vic-admin', 'vic-invpos', 'vic-extension']
 
@@ -30,6 +31,17 @@ const PUESTOS_POR_RANKING = 4
  * solo verde. Las metas viven en `anclas.ts`, el punto único de corrección.
  */
 const contraMeta = (valor: number, meta: number) => clasificar((valor / meta) * 100)
+
+/**
+ * La meta de ejecución presupuestaria es ACUMULADA A LA FECHA, no anual: a
+ * finales de agosto van dos tercios del ejercicio y ejecutar el 78.4% es ir a
+ * ritmo. Rotularla solo como "meta 80%" la hacía leer como meta de cierre, y
+ * un 80% anual es bajo para una institución pública dominicana — el Rector
+ * podría preguntar por qué su tablero se conforma con subejecutar. El mes
+ * sale del reloj, así que el rótulo sigue siendo cierto en diciembre.
+ */
+const mesEnCurso = () =>
+  ahora().toLocaleDateString('es-DO', { month: 'long' })
 
 export function Rectoral() {
   const { filtro, despachar } = useFiltros()
@@ -69,8 +81,8 @@ export function Rectoral() {
       detalle: 'Investiduras procesadas' },
     { titulo: 'Ejecución presupuestaria',
       valor: `${ANCLAS.ejecucionPresupuestariaPct}%`,
-      detalle: `${formatear(ANCLAS.presupuestoAnualRD, 'moneda')} · meta `
-        + `${ANCLAS.metaEjecucionPresupuestariaPct}%`,
+      detalle: `${formatear(ANCLAS.presupuestoAnualRD, 'moneda')} · meta acumulada `
+        + `a ${mesEnCurso()} ${ANCLAS.metaEjecucionPresupuestariaPct}%`,
       estado: contraMeta(
         ANCLAS.ejecucionPresupuestariaPct, ANCLAS.metaEjecucionPresupuestariaPct) },
     { titulo: 'Cumplimiento POA', valor: `${ANCLAS.cumplimientoPoaPct}%`,

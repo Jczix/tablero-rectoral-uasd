@@ -66,10 +66,20 @@ describe('Rectoral', () => {
   })
 
   it('cada KPI con semáforo declara su meta, para que el color se pueda explicar', () => {
+    fijarAhora(new Date('2026-08-25T14:30:00Z'))
     montar()
-    expect(screen.getByText(/meta 80%/)).toBeInTheDocument()
+    // La meta de ejecución es ACUMULADA A LA FECHA, y el rótulo lo dice con
+    // el mes que marca el reloj: "meta 80%" a secas se leía como meta de
+    // cierre anual, y un 80% anual sería subejecutar.
+    expect(screen.getByText(/meta acumulada a agosto 80%/)).toBeInTheDocument()
     expect(screen.getByText(/meta 85%/)).toBeInTheDocument()
     expect(screen.getByText(/meta 90%/)).toBeInTheDocument()
+  })
+
+  it('el rótulo de la meta acumulada sigue al reloj, no fija agosto', () => {
+    fijarAhora(new Date('2026-11-10T14:30:00Z'))
+    montar()
+    expect(screen.getByText(/meta acumulada a noviembre 80%/)).toBeInTheDocument()
   })
 
   it('anuncia el presupuesto en millones, sin la abreviatura ambigua MM', () => {

@@ -26,7 +26,9 @@ export const ANCLAS = {
   // PENDIENTE DE VALIDACIÓN con la UASD, igual que el resto de las anclas.
   /** Ejecución ACUMULADA A LA FECHA esperada, no la del cierre anual: a
    *  finales de agosto (dos tercios del ejercicio) una ejecución del 80%
-   *  es el ritmo normal de una institución que no subejecuta. */
+   *  es el ritmo normal de una institución que no subejecuta. El rótulo del
+   *  KPI lo dice explícitamente ("meta acumulada a agosto 80%") para que no
+   *  se confunda con una meta de cierre, que sería mucho más alta. */
   metaEjecucionPresupuestariaPct: 80,
   /** Meta institucional de cumplimiento del POA. */
   metaCumplimientoPoaPct: 85,
