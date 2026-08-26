@@ -8,8 +8,13 @@ import { vi, describe, it, expect } from 'vitest'
 // ese tipo para poder observar el efecto sobre la distribución de semáforos,
 // que es donde una inversión de dirección se nota (verde y rojo se
 // intercambiarían).
+//
+// Son 3,000 indicadores sintéticos, no 300: con 300 la desviación típica de
+// la proporción de ámbar ronda los 2.3 puntos, así que una tolerancia de ±3
+// sobre esa muestra es ruido muestral, no una guarda. Con 3,000 baja a 0.7 y
+// el margen sí mide lo que dice medir.
 const INDICADORES_TEST = vi.hoisted(() =>
-  Array.from({ length: 300 }, (_, i) => ({
+  Array.from({ length: 3000 }, (_, i) => ({
     id: `test-menor::porcentaje::${i + 1}`,
     unidadId: 'rectoria',
     nombre: `Porcentaje de quejas sin resolver ${i + 1}`,

@@ -47,6 +47,57 @@ export function cumplimientoDeVentana(
   return n ? suma / n : 0
 }
 
+/** Media de una propiedad numérica de la ventana. */
+const mediaDeVentana = (
+  serie: PuntoSerie[], finExclusivo: number, meses: number,
+  campo: (p: PuntoSerie) => number,
+): number => {
+  const inicio = Math.max(0, finExclusivo - meses)
+  let suma = 0
+  let n = 0
+  for (let i = inicio; i < finExclusivo && i < serie.length; i++) { suma += campo(serie[i]); n++ }
+  return n ? suma / n : 0
+}
+
+/** Umbral de variación relativa a partir del cual una serie "se mueve". */
+const UMBRAL_TENDENCIA = 0.02
+
+/**
+ * El punto que representa a un indicador EN LA VENTANA del período: valor y
+ * meta medios de la ventana, su cumplimiento medio y el semáforo que le
+ * corresponde, con la tendencia calculada contra la ventana inmediatamente
+ * anterior del mismo tamaño.
+ *
+ * Existe para que la tarjeta de indicador de la vista de Unidad hable el
+ * mismo idioma que la rejilla de Nivel. Mientras la tarjeta usaba
+ * `getUltimo` (el último mes) y la rejilla el semáforo de ventana, ambas se
+ * contradecían en cuanto el período dejaba de ser 'Mes actual': la Escuela
+ * de Comunicación Social decía "13 en meta · 7 en riesgo" en la rejilla y
+ * mostraba 14 y 6 al abrirla. Con `meses = 1` este punto es exactamente el
+ * último de la serie, así que 'Mes actual' no cambia nada.
+ */
+export function puntoDeVentana(
+  serie: PuntoSerie[], finExclusivo: number, meses: number,
+): PuntoSerie {
+  const valor = mediaDeVentana(serie, finExclusivo, meses, p => p.valor)
+  const meta = mediaDeVentana(serie, finExclusivo, meses, p => p.meta)
+  const cumplimiento = cumplimientoDeVentana(serie, finExclusivo, meses)
+
+  const inicioPrevio = finExclusivo - meses
+  const previo = inicioPrevio > 0
+    ? mediaDeVentana(serie, inicioPrevio, meses, p => p.valor) : null
+  const delta = previo !== null ? (valor - previo) / Math.max(previo, 0.1) : 0
+
+  return {
+    indicadorId: serie[0]?.indicadorId ?? '',
+    periodo: serie[finExclusivo - 1]?.periodo ?? '',
+    valor, meta, cumplimiento,
+    semaforo: clasificar(cumplimiento),
+    tendencia: delta > UMBRAL_TENDENCIA ? 'alza'
+      : delta < -UMBRAL_TENDENCIA ? 'baja' : 'estable',
+  }
+}
+
 /**
  * Semáforo de un indicador PARA EL PERÍODO VIGENTE: clasifica el
  * cumplimiento medio de la ventana en vez del último mes suelto. Con 'Mes
@@ -97,12 +148,44 @@ export function clasificarUnidad(pctEnMeta: number): Semaforo {
   return 'rojo'
 }
 
-/** Bandas de cumplimiento objetivo, calibradas a 70 / 20 / 10. */
+/**
+ * Bandas de desempeño de un indicador, sorteadas 70 / 20 / 10. La banda fija
+ * el CENTRO alrededor del cual oscila su cumplimiento, no un corral del que
+ * no pueda salir.
+ *
+ * Los topes superiores se ensancharon (118→124, 94→98, 78→84) para que las
+ * bandas CRUCEN los umbrales de `clasificar` (95 y 80). Antes ninguna los
+ * cruzaba —verde iba de 96 a 118, ámbar de 82 a 94, rojo de 58 a 78— así que
+ * el semáforo de un indicador quedaba determinado por su banda y no por el
+ * mes: promediar 3, 6 o 12 puntos jamás podía sacarlo de ella, y el filtro de
+ * Período resultaba indistinguible entre Trimestre, Semestre, Año y
+ * Comparativo. Con las bandas cruzando los umbrales, un mismo indicador puede
+ * estar en meta unos meses y fuera otros, y el promedio de la ventana pasa a
+ * significar algo real.
+ */
 const BANDAS: [number, [number, number]][] = [
-  [0.70, [96, 118]],   // verde
-  [0.90, [82, 94]],    // ámbar
-  [1.00, [58, 78]],    // rojo
+  [0.70, [96, 124]],   // verde
+  [0.90, [82, 98]],    // ámbar
+  [1.00, [58, 84]],    // rojo
 ]
+
+/**
+ * Dispersión mensual alrededor del centro de la banda, en puntos de
+ * cumplimiento (uniforme en ±14). Es la otra mitad del mismo arreglo: sin
+ * ella, ensanchar las bandas movería a cada indicador de sitio pero lo
+ * dejaría igual de clavado, porque su centro seguiría siendo el mismo todos
+ * los meses.
+ *
+ * El valor está calibrado junto con los topes de las bandas para que la
+ * distribución de semáforos del MES VIGENTE siga siendo 70 / 20 / 10 (±3),
+ * que es el cuadro institucional ya probado y el que se le presenta al
+ * Rector: la dispersión hace fluctuar a cada indicador, pero las entradas y
+ * salidas de cada banda se compensan y el reparto agregado del mes no se
+ * mueve. Lo que sí cambia es la ventana: cuanto más larga, más se acerca el
+ * promedio al centro del indicador, así que Mes, Trimestre, Semestre y Año
+ * dan respuestas distintas para el mismo indicador.
+ */
+const DISPERSION_MENSUAL = 14
 
 const bandaDe = (r: number): [number, number] =>
   BANDAS.find(([tope]) => r < tope)![1]
@@ -169,6 +252,9 @@ export function generarSerie(indicadorId: string, meses = 24): PuntoSerie[] {
   // meses tenga la ventana ni de en qué orden se recorran.
   const r = mulberry32(hashSemilla(indicadorId) ^ SEMILLA_GLOBAL)
   const [minCump, maxCump] = bandaDe(r())
+  // Centro de desempeño del indicador: se sortea UNA vez y no cambia de mes
+  // a mes. Lo que varía cada mes es la dispersión alrededor de él.
+  const centroCump = minCump + r() * (maxCump - minCump)
   const base = magnitudBase(ind, peso, r)
   const deriva = (r() - 0.45) * 0.006          // tendencia mensual suave
 
@@ -185,7 +271,14 @@ export function generarSerie(indicadorId: string, meses = 24): PuntoSerie[] {
     const rp = mulberry32(hashSemilla(`${indicadorId}|${periodo}`))
     const ruido = 0.94 + rp() * 0.12
     const factor = (1 + deriva * kAbs) * ESTACIONAL[mes] * ruido
-    const cump = minCump + rp() * (maxCump - minCump)
+    // El suelo de `META_PORCENTAJE_MENOR_MEJOR` mantiene válida la relación
+    // `meta * 100 / cump <= 100` de la rama menor-mejor incluso si alguien
+    // vuelve a bajar los topes de las bandas: sin él, un cumplimiento por
+    // debajo de la meta dispararía el recorte a 100 y sesgaría el reparto.
+    const cump = Math.max(
+      META_PORCENTAJE_MENOR_MEJOR,
+      centroCump + (rp() - 0.5) * 2 * DISPERSION_MENSUAL,
+    )
 
     let valor: number, meta: number
     if (ind.tipoMetrica === 'porcentaje') {
@@ -211,7 +304,7 @@ export function generarSerie(indicadorId: string, meses = 24): PuntoSerie[] {
 
     const previo = puntos.at(-1)
     const delta = previo ? (valor - previo.valor) / Math.max(previo.valor, 0.1) : 0
-    const tendencia = delta > 0.02 ? 'alza' : delta < -0.02 ? 'baja' : 'estable'
+    const tendencia = delta > UMBRAL_TENDENCIA ? 'alza' : delta < -UMBRAL_TENDENCIA ? 'baja' : 'estable'
 
     puntos.push({
       indicadorId, periodo, valor, meta,

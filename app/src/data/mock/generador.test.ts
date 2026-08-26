@@ -125,6 +125,33 @@ describe('generarSerie', () => {
     expect(pct('rojo')).toBeLessThan(13)
   })
 
+  it('un mismo indicador cambia de semáforo a lo largo de sus 24 meses', () => {
+    // El defecto de fondo del Período: la banda se sorteaba una vez por
+    // indicador y ninguna banda cruzaba los umbrales de `clasificar` (verde
+    // 96–118, ámbar 82–94, rojo 58–78, contra umbrales en 95 y 80), así que
+    // el semáforo quedaba determinado por la banda y no por el mes.
+    // Promediar 3, 6 o 12 puntos no podía sacarlo de ahí, y Trimestre,
+    // Semestre, Año y Comparativo daban exactamente la misma portada.
+    const variables = INDICADORES.filter(i => {
+      const distintos = new Set(generarSerie(i.id).map(p => p.semaforo))
+      return distintos.size > 1
+    }).length
+    // Con las bandas cruzando los umbrales y dispersión mensual, la mayoría
+    // de los indicadores pasa por más de un semáforo en dos años.
+    expect(variables / INDICADORES.length).toBeGreaterThan(0.5)
+  })
+
+  it('el promedio de una ventana puede dar un semáforo distinto al del último mes', () => {
+    // Es la consecuencia que hace que el filtro de Período signifique algo.
+    const media = (s: { cumplimiento: number }[]) =>
+      s.reduce((a, p) => a + p.cumplimiento, 0) / s.length
+    const distintos = INDICADORES.filter(i => {
+      const s = generarSerie(i.id)
+      return clasificar(media(s.slice(-12))) !== s.at(-1)!.semaforo
+    }).length
+    expect(distintos).toBeGreaterThan(300)
+  })
+
   it('escala la magnitud según el peso de la unidad', () => {
     // La Sede Central pesa mucho más que el subcentro de Pedernales.
     const sede = generarSerie('sede-central::servicio::1').at(-1)!.valor
