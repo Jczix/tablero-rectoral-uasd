@@ -98,10 +98,10 @@ export function Unidad() {
             // discrepaban con Año, Semestre y Comparativo; 18 con
             // Trimestre) y podía mostrar en ámbar un indicador que el
             // filtro "Estado = Incumplido" acababa de seleccionar.
-            const { punto, serie } = ds.getIndicadorEnPeriodo(i.id, filtro)
+            const { punto } = ds.getIndicadorEnPeriodo(i.id, filtro)
             return (
               <TarjetaIndicador key={i.id} indicador={i}
-                punto={punto} serie={serie} onClic={abrirIndicador} />
+                punto={punto} onClic={abrirIndicador} />
             )
           })}
         </div>

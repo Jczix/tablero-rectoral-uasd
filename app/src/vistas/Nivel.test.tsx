@@ -101,3 +101,11 @@ describe('Nivel — el filtro de Estado filtra unidades, no destruye su cálculo
     expect(heading).toHaveTextContent(`${botones.length} unidades`)
   })
 })
+
+describe('Nivel — la tarjeta lleva barra apilada de semáforo, no sparkline', () => {
+  it('cada tarjeta dibuja la composición verde/ámbar/rojo y ninguna un sparkline', () => {
+    const { container } = montar()
+    expect(container.querySelectorAll('[data-segmento]').length).toBeGreaterThan(0)
+    expect(container.querySelector('polyline')).toBeNull()
+  })
+})

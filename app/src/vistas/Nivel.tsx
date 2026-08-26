@@ -3,7 +3,7 @@ import { mockDataSource as ds } from '../data/mock/MockDataSource'
 import { useFiltros } from '../state/FiltrosContext'
 import { porId, hijosDe, NIVELES } from '../data/mock/unidades'
 import { Semaforo } from '../components/kpi/Semaforo'
-import { Minigrafico } from '../components/kpi/Minigrafico'
+import { BarraSemaforo } from '../components/kpi/BarraSemaforo'
 import { EstadoVacio } from '../components/marco/EstadoVacio'
 import type { FilaUnidad } from '../data/source'
 
@@ -124,7 +124,7 @@ export function Nivel() {
                     {' · '}{f.porSemaforo.rojo}{' '}
                     {f.porSemaforo.rojo === 1 ? 'incumplido' : 'incumplidos'}
                   </div>
-                  <Minigrafico datos={f.serie} estado={f.semaforo} />
+                  <div className="mt-2"><BarraSemaforo porSemaforo={f.porSemaforo} /></div>
                 </button>
               )
             })}

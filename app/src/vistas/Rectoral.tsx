@@ -4,7 +4,7 @@ import { mockDataSource as ds } from '../data/mock/MockDataSource'
 import { useFiltros } from '../state/FiltrosContext'
 import { TarjetaKPI } from '../components/kpi/TarjetaKPI'
 import { Semaforo } from '../components/kpi/Semaforo'
-import { Minigrafico } from '../components/kpi/Minigrafico'
+import { BarraSemaforo } from '../components/kpi/BarraSemaforo'
 import { MapaRD } from '../components/mapa/MapaRD'
 import { GraficoBarras } from '../components/graficos/GraficoBarras'
 import { FeedActividad } from '../components/marco/FeedActividad'
@@ -130,7 +130,7 @@ export function Rectoral() {
                   {f.cumplimiento.toFixed(1)}%
                   <span className="ml-1 text-xs font-normal text-white/70">en meta</span>
                 </div>
-                <Minigrafico datos={f.serie} estado={f.semaforo} />
+                <div className="mt-2"><BarraSemaforo porSemaforo={f.porSemaforo} /></div>
               </button>
             ))}
           </div>

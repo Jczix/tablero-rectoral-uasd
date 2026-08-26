@@ -17,7 +17,7 @@ const punto: PuntoSerie = {
 
 describe('TarjetaIndicador', () => {
   it('muestra nombre, valor formateado, meta y cumplimiento', () => {
-    render(<TarjetaIndicador indicador={indicador} punto={punto} serie={[]} />)
+    render(<TarjetaIndicador indicador={indicador} punto={punto} />)
     expect(screen.getByText('Récords oficiales emitidos')).toBeInTheDocument()
     expect(screen.getByText('4,820')).toBeInTheDocument()
     expect(screen.getByText('Meta 5,000')).toBeInTheDocument()
@@ -25,31 +25,41 @@ describe('TarjetaIndicador', () => {
   })
 
   it('muestra el semáforo con su etiqueta accesible', () => {
-    render(<TarjetaIndicador indicador={indicador} punto={punto} serie={[]} />)
+    render(<TarjetaIndicador indicador={indicador} punto={punto} />)
     expect(screen.getByRole('img', { name: 'En meta' })).toBeInTheDocument()
   })
 
   it('indica la tendencia con una flecha etiquetada', () => {
-    render(<TarjetaIndicador indicador={indicador} punto={punto} serie={[]} />)
+    render(<TarjetaIndicador indicador={indicador} punto={punto} />)
     expect(screen.getByLabelText('Tendencia al alza')).toBeInTheDocument()
   })
 
   it('formatea los días con su unidad', () => {
     const dias: Indicador = { ...indicador, tipoMetrica: 'dias', direccion: 'menor-mejor' }
-    render(<TarjetaIndicador indicador={dias} punto={{ ...punto, valor: 3.2 }} serie={[]} />)
+    render(<TarjetaIndicador indicador={dias} punto={{ ...punto, valor: 3.2 }} />)
     expect(screen.getByText('3.2 días')).toBeInTheDocument()
   })
 
   it('avisa al hacer clic cuando es clicable', async () => {
     const onClic = vi.fn()
     const usuario = userEvent.setup()
-    render(<TarjetaIndicador indicador={indicador} punto={punto} serie={[]} onClic={onClic} />)
+    render(<TarjetaIndicador indicador={indicador} punto={punto} onClic={onClic} />)
     await usuario.click(screen.getByRole('button'))
     expect(onClic).toHaveBeenCalledWith('x::servicio::1')
   })
 
   it('no es un botón cuando no es clicable', () => {
-    render(<TarjetaIndicador indicador={indicador} punto={punto} serie={[]} />)
+    render(<TarjetaIndicador indicador={indicador} punto={punto} />)
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  })
+})
+
+describe('TarjetaIndicador · barra contra la meta', () => {
+  it('muestra una barra bullet con la meta marcada, no un sparkline', () => {
+    const { container } = render(
+      <TarjetaIndicador indicador={indicador} punto={punto} />)
+    expect(container.querySelector('[data-valor]')).toBeTruthy()
+    expect(container.querySelector('[data-meta]')).toBeTruthy()
+    expect(container.querySelector('polyline')).toBeNull()
   })
 })

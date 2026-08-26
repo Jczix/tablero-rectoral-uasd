@@ -1,6 +1,6 @@
 import type { Indicador, PuntoSerie, Tendencia } from '../../data/tipos'
 import { Semaforo } from './Semaforo'
-import { Minigrafico } from './Minigrafico'
+import { BarraBala } from './BarraBala'
 import { formatear } from './formato'
 
 const FLECHA: Record<Tendencia, { signo: string; etiqueta: string }> = {
@@ -12,11 +12,10 @@ const FLECHA: Record<Tendencia, { signo: string; etiqueta: string }> = {
 interface Props {
   indicador: Indicador
   punto: PuntoSerie
-  serie: number[]
   onClic?: (indicadorId: string) => void
 }
 
-export function TarjetaIndicador({ indicador, punto, serie, onClic }: Props) {
+export function TarjetaIndicador({ indicador, punto, onClic }: Props) {
   const flecha = FLECHA[punto.tendencia]
   const contenido = (
     <>
@@ -36,9 +35,12 @@ export function TarjetaIndicador({ indicador, punto, serie, onClic }: Props) {
         <span>{`Meta ${formatear(punto.meta, indicador.tipoMetrica)}`}</span>
         <span className="tabular-nums">{`${punto.cumplimiento.toFixed(1)}%`}</span>
       </div>
-      {serie.length > 1 && (
-        <div className="mt-2"><Minigrafico datos={serie} estado={punto.semaforo} /></div>
-      )}
+      {/* Barra de progreso contra la meta en lugar del sparkline: el
+          historial vive en el diálogo de detalle; la tarjeta responde
+          "¿cuánto falta / cuánto sobra respecto a la meta?" de un vistazo. */}
+      <div className="mt-2">
+        <BarraBala valor={punto.valor} meta={punto.meta} semaforo={punto.semaforo} />
+      </div>
     </>
   )
 
