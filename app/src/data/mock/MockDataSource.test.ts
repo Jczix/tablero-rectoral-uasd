@@ -120,12 +120,12 @@ describe('MockDataSource', () => {
   })
 
   it('las filas de getResumen respetan la categoría del filtro, no solo el agregado', () => {
-    // invpos-9 tiene 3 indicadores en rojo de categoría 'servicio' y 1 de 'proceso':
+    // invpos-9 tiene 3 indicadores en rojo de categoría 'servicio' y 2 de 'proceso':
     // si la fila ignorara el filtro, ambos casos darían el mismo indicadoresEnRojo.
     const conServicio = ds.getResumen({ ...base, unidadId: 'invpos-9', categoria: 'servicio' })
     const conProceso = ds.getResumen({ ...base, unidadId: 'invpos-9', categoria: 'proceso' })
     expect(conServicio.mejores[0].indicadoresEnRojo).toBe(3)
-    expect(conProceso.mejores[0].indicadoresEnRojo).toBe(1)
+    expect(conProceso.mejores[0].indicadoresEnRojo).toBe(2)
   })
 
   it('mejores y enAlerta nunca se solapan, incluso con alcances pequeños', () => {
@@ -249,5 +249,97 @@ describe('MockDataSource', () => {
       expect(f.indicadoresEnRojo).toBe(rojo)
       expect(f.cumplimiento).toBeCloseTo((verde / f.totalIndicadores) * 100, 10)
     }
+  })
+  // --- Última ronda: varianza mensual real y criterio de ventana unificado ---
+
+  const PERIODOS: Filtro['periodo'][] =
+    ['mes', 'trimestre', 'semestre', 'anio', 'comparativo']
+
+  it('todo indicador listado bajo un filtro de Estado muestra ese mismo estado en su tarjeta', () => {
+    // La contradicción: con Estado = Incumplido y Período = Año,
+    // `getIndicadores` listaba 6 indicadores cuya tarjeta pintaba ámbar,
+    // porque el filtro usaba el semáforo de ventana y la tarjeta el del
+    // último mes. Se comprueba en los cinco períodos y sobre un alcance
+    // amplio, no sobre una unidad escogida a mano.
+    const unidades = ['dir-registro', 'esc-medicina', 'vic-admin', 'invpos-9',
+      'recinto-santiago', 'esc-musica', 'org-6']
+    let comprobados = 0
+    for (const periodo of PERIODOS) {
+      for (const estado of ['verde', 'ambar', 'rojo'] as const) {
+        for (const u of unidades) {
+          const f = { ...base, unidadId: u, periodo, estado }
+          for (const i of ds.getIndicadores(u, f)) {
+            expect(ds.getIndicadorEnPeriodo(i.id, f).punto.semaforo,
+              `${u} ${periodo} ${estado} ${i.nombre}`).toBe(estado)
+            comprobados++
+          }
+        }
+      }
+    }
+    // Si el alcance quedara vacío, el bucle pasaría sin comprobar nada.
+    expect(comprobados).toBeGreaterThan(300)
+  })
+
+  it('el desglose de la rejilla cuadra con las tarjetas de la vista de unidad', () => {
+    // "13 en meta · 7 en riesgo" en la rejilla y 14 / 6 al abrir la unidad:
+    // eran dos criterios distintos sobre el mismo dato.
+    for (const periodo of PERIODOS) {
+      for (const fila of ds.getFilas({ ...base, nivel: 12, periodo })) {
+        const f = { ...base, unidadId: fila.unidad.id, periodo }
+        const tarjetas = ds.getIndicadores(fila.unidad.id, f)
+          .map(i => ds.getIndicadorEnPeriodo(i.id, f).punto.semaforo)
+        const cuenta = { verde: 0, ambar: 0, rojo: 0 }
+        for (const s of tarjetas) cuenta[s]++
+        expect(cuenta, `${fila.unidad.nombre} · ${periodo}`).toEqual(fila.porSemaforo)
+      }
+    }
+  })
+
+  it("'Mes actual' deja la tarjeta exactamente igual que el último punto de la serie", () => {
+    for (const i of ds.getIndicadores('dir-registro', base)) {
+      const { punto } = ds.getIndicadorEnPeriodo(i.id, base)
+      const ultimo = ds.getUltimo(i.id)!
+      expect(punto.valor).toBeCloseTo(ultimo.valor, 9)
+      expect(punto.meta).toBeCloseTo(ultimo.meta, 9)
+      expect(punto.cumplimiento).toBeCloseTo(ultimo.cumplimiento, 9)
+      expect(punto.semaforo).toBe(ultimo.semaforo)
+      expect(punto.tendencia).toBe(ultimo.tendencia)
+    }
+  })
+
+  it('el minigráfico de la tarjeta termina en la misma cifra que el número grande', () => {
+    for (const periodo of PERIODOS) {
+      const f = { ...base, unidadId: 'dir-registro', periodo }
+      for (const i of ds.getIndicadores('dir-registro', f)) {
+        const { punto, serie } = ds.getIndicadorEnPeriodo(i.id, f)
+        expect(serie).toHaveLength(12)
+        expect(serie.at(-1), `${i.nombre} · ${periodo}`).toBeCloseTo(punto.valor, 9)
+      }
+    }
+  })
+
+  it('los cinco períodos NO producen el mismo tablero', () => {
+    // El defecto de fondo: la banda de cumplimiento se sorteaba una vez por
+    // indicador y ninguna banda cruzaba los umbrales de `clasificar`, así que
+    // promediar 3, 6 o 12 puntos no podía cambiar ningún semáforo y
+    // Trimestre, Semestre, Año y Comparativo daban una portada idéntica.
+    const huella = (periodo: Filtro['periodo']) =>
+      ds.getFilas({ ...base, periodo })
+        .map(f => `${f.unidad.id}:${f.cumplimiento.toFixed(1)}`).join(',')
+    const distintos = ['mes', 'trimestre', 'semestre', 'anio'] as const
+    for (let i = 0; i < distintos.length; i++)
+      for (let j = i + 1; j < distintos.length; j++)
+        expect(huella(distintos[i]), `${distintos[i]} vs ${distintos[j]}`)
+          .not.toBe(huella(distintos[j]))
+
+    // Y la diferencia es sustancial, no un decimal suelto en una unidad.
+    const a = huella('trimestre').split(',')
+    const b = huella('anio').split(',')
+    expect(a.filter((v, k) => v !== b[k]).length).toBeGreaterThan(30)
+
+    // 'comparativo' SÍ coincide con 'anio' en las cifras agregadas: por
+    // diseño usa la ventana del año en curso, y lo que lo distingue es que
+    // el diálogo superpone además el año anterior.
+    expect(huella('comparativo')).toBe(huella('anio'))
   })
 })

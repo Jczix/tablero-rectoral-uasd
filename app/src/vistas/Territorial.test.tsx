@@ -117,17 +117,30 @@ describe('Territorial', () => {
     expect(fila.getAttribute('aria-label')).toMatch(/detalle/i)
   })
   it('el filtro Estado recorta la tabla pero deja el mapa completo', () => {
-    montarConEstado('rojo')
+    montarConEstado('ambar')
     // El mapa sigue dibujando las 35 unidades: un mapa con la mitad de los
     // puntos borrados no es un mapa filtrado, es un mapa roto.
     expect(screen.getAllByRole('button', { name: /estudiantes/ }))
       .toHaveLength(1 + 4 + 18 + 12)
-    // La tabla, en cambio, solo lista las incumplidas.
+    // La tabla, en cambio, solo lista las que están en riesgo.
     const filas = within(screen.getByRole('table')).getAllByRole('row').slice(1)
     expect(filas.length).toBeGreaterThan(0)
     expect(filas.length).toBeLessThan(35)
     for (const f of filas)
-      expect(within(f).getByText('Incumplido')).toBeInTheDocument()
+      expect(within(f).getByText('En riesgo')).toBeInTheDocument()
+  })
+
+  it('cuando ninguna unidad territorial está en el estado escogido, lo explica', () => {
+    // Con el mes vigente ninguna unidad territorial cae en rojo: antes se veía
+    // el marco de la tabla con "· 0" y el cuerpo en blanco.
+    montarConEstado('rojo')
+    expect(screen.getByRole('heading', { name: /Unidades territoriales · 0/ }))
+      .toBeInTheDocument()
+    expect(screen.getByTestId('estado-vacio'))
+      .toHaveTextContent('Ninguna unidad de la red territorial está en estado Incumplido.')
+    // Y el mapa sigue completo aun con la tabla vacía.
+    expect(screen.getAllByRole('button', { name: /estudiantes/ }))
+      .toHaveLength(1 + 4 + 18 + 12)
   })
 
 })

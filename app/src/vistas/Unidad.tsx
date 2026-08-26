@@ -90,12 +90,20 @@ export function Unidad() {
       <section className="mt-6 first:mt-0">
         <h3 className="mb-3 text-xs uppercase tracking-wide text-white/70">{titulo}</h3>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-          {lista.map(i => (
-            <TarjetaIndicador key={i.id} indicador={i}
-              punto={ds.getUltimo(i.id)!}
-              serie={ds.getSerie(i.id).slice(-12).map(p => p.valor)}
-              onClic={abrirIndicador} />
-          ))}
+          {lista.map(i => {
+            // La tarjeta lee el indicador RESUELTO PARA LA VENTANA del
+            // período, no `getUltimo`. Mientras usaba el último mes, la
+            // tarjeta contradecía al desglose de la rejilla de Nivel en
+            // cuanto el período dejaba de ser 'Mes actual' (21 unidades
+            // discrepaban con Año, Semestre y Comparativo; 18 con
+            // Trimestre) y podía mostrar en ámbar un indicador que el
+            // filtro "Estado = Incumplido" acababa de seleccionar.
+            const { punto, serie } = ds.getIndicadorEnPeriodo(i.id, filtro)
+            return (
+              <TarjetaIndicador key={i.id} indicador={i}
+                punto={punto} serie={serie} onClic={abrirIndicador} />
+            )
+          })}
         </div>
       </section>
     )

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ProveedorFiltros, useFiltros } from '../state/FiltrosContext'
 import { Unidad } from './Unidad'
@@ -11,6 +11,20 @@ function Fijar({ unidadId, periodo }: { unidadId: string; periodo?: Periodo }) {
     despachar({ tipo: 'seleccionarUnidad', valor: unidadId })
   else if (periodo && filtro.periodo !== periodo)
     despachar({ tipo: 'periodo', valor: periodo })
+  return null
+}
+
+function FijarCompleto(
+  { unidadId, estado, periodo }:
+  { unidadId: string; estado: EstadoFiltro; periodo: Periodo },
+) {
+  const { filtro, despachar } = useFiltros()
+  if (filtro.unidadId !== unidadId)
+    despachar({ tipo: 'seleccionarUnidad', valor: unidadId })
+  else if (filtro.periodo !== periodo)
+    despachar({ tipo: 'periodo', valor: periodo })
+  else if (filtro.estado !== estado)
+    despachar({ tipo: 'estado', valor: estado })
   return null
 }
 
@@ -77,6 +91,23 @@ describe('Unidad', () => {
     const vacio = screen.getByTestId('estado-vacio')
     expect(vacio).toHaveTextContent('Ningún indicador de esta unidad está en estado Incumplido.')
     expect(vacio).toHaveTextContent(/Cambia el filtro Estado/)
+  })
+
+  it('la tarjeta usa el semáforo de la ventana, no el del último mes', () => {
+    // Con Estado = Incumplido y Período = Año, la lista traía indicadores
+    // cuya tarjeta pintaba ámbar: el filtro miraba la ventana y la tarjeta
+    // el último mes. Aquí se comprueba sobre el DOM renderizado, no solo
+    // sobre la fuente de datos.
+    render(
+      <ProveedorFiltros>
+        <FijarCompleto unidadId="esc-musica" estado="rojo" periodo="anio" />
+        <Unidad />
+      </ProveedorFiltros>
+    )
+    const tarjetas = screen.queryAllByRole('button')
+    expect(tarjetas.length).toBeGreaterThan(0)
+    for (const t of tarjetas)
+      expect(within(t).getByRole('img').getAttribute('aria-label')).toBe('Incumplido')
   })
 
   it('el diálogo respeta el período: con Trimestre la serie se recorta a tres meses', async () => {

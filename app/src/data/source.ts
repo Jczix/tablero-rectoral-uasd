@@ -49,6 +49,15 @@ export interface FilaUnidad {
   totalIndicadores: number
 }
 
+/** Un indicador resuelto para el período vigente, listo para pintar en una
+ *  tarjeta: el punto que representa a su ventana y los 12 puntos del
+ *  minigráfico calculados con esa misma ventana, para que el número grande y
+ *  la curva de debajo no hablen de escalas distintas. */
+export interface IndicadorEnPeriodo {
+  punto: PuntoSerie
+  serie: number[]
+}
+
 /** Serie de un indicador ya recortada al período vigente. `previa` solo
  *  viene con el período 'comparativo': son los 12 meses inmediatamente
  *  anteriores a la ventana en curso, para dibujarlos superpuestos. */
@@ -75,6 +84,10 @@ export interface DataSource {
   getSerie(indicadorId: string): PuntoSerie[]
   /** La serie recortada a la ventana del período vigente (ver `SeriePeriodo`). */
   getSeriePeriodo(indicadorId: string, f: Filtro): SeriePeriodo
+  /** El indicador resuelto para la ventana del período: es lo que debe pintar
+   *  la tarjeta, no `getUltimo`, o la tarjeta contradice a la rejilla en
+   *  cuanto el período deja de ser 'Mes actual'. */
+  getIndicadorEnPeriodo(indicadorId: string, f: Filtro): IndicadorEnPeriodo
   getUltimo(indicadorId: string): PuntoSerie | undefined
   getResumen(f: Filtro): ResumenAgregado
   getFilas(f: Filtro): FilaUnidad[]

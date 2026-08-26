@@ -1,12 +1,13 @@
 import type {
   DataSource, Filtro, FilaUnidad, ResumenAgregado, SeriePeriodo,
+  IndicadorEnPeriodo,
 } from '../source'
 import type { Unidad, Indicador, PuntoSerie, Semaforo } from '../tipos'
 import { UNIDADES, NIVELES, porId, hijosDe, puedeSerArea } from './unidades'
 import { INDICADORES, indicadoresDe } from './catalogo'
 import {
   generarSerie, clasificar, clasificarUnidad, porcentajeEnMeta,
-  MESES_PERIODO, cumplimientoDeVentana, semaforoDeVentana,
+  MESES_PERIODO, cumplimientoDeVentana, semaforoDeVentana, puntoDeVentana,
 } from './generador'
 
 /** Memoización: la serie de un indicador se calcula una sola vez. */
@@ -260,6 +261,18 @@ export const mockDataSource: DataSource = {
    * entra en el cálculo por la vía normal de `filaDe`.
    */
   getTerritoriales: (f) => UNIDADES.filter(u => u.coords).map(u => fila(u, f)),
+
+  getIndicadorEnPeriodo(indicadorId, f): IndicadorEnPeriodo {
+    const s = serieDe(indicadorId)
+    const meses = MESES_PERIODO[f.periodo]
+    // El minigráfico usa la MISMA ventana que el número grande, en media
+    // móvil: cada uno de sus 12 puntos es el valor medio de la ventana que
+    // termina en ese mes. Así su último punto coincide con la cifra que
+    // tiene encima en vez de mostrar el mes suelto bajo una cifra de año.
+    const serie = Array.from({ length: 12 }, (_, k) =>
+      puntoDeVentana(s, 12 + k + 1, meses).valor)
+    return { punto: puntoDeVentana(s, s.length, meses), serie }
+  },
 
   getSeriePeriodo(indicadorId, f): SeriePeriodo {
     const s = serieDe(indicadorId)
