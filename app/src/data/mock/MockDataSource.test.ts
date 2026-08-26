@@ -120,12 +120,13 @@ describe('MockDataSource', () => {
   })
 
   it('las filas de getResumen respetan la categoría del filtro, no solo el agregado', () => {
-    // invpos-9 tiene 3 indicadores en rojo de categoría 'servicio' y 2 de 'proceso':
-    // si la fila ignorara el filtro, ambos casos darían el mismo indicadoresEnRojo.
+    // invpos-9 tiene 2 indicadores en rojo de categoría 'servicio' y 1 de 'proceso'
+    // (cifras del catálogo determinista vigente): si la fila ignorara el
+    // filtro, ambos casos darían el mismo indicadoresEnRojo.
     const conServicio = ds.getResumen({ ...base, unidadId: 'invpos-9', categoria: 'servicio' })
     const conProceso = ds.getResumen({ ...base, unidadId: 'invpos-9', categoria: 'proceso' })
-    expect(conServicio.mejores[0].indicadoresEnRojo).toBe(3)
-    expect(conProceso.mejores[0].indicadoresEnRojo).toBe(2)
+    expect(conServicio.mejores[0].indicadoresEnRojo).toBe(2)
+    expect(conProceso.mejores[0].indicadoresEnRojo).toBe(1)
   })
 
   it('mejores y enAlerta nunca se solapan, incluso con alcances pequeños', () => {

@@ -1,6 +1,7 @@
 import type { Indicador, CategoriaIndicador } from '../tipos'
 import { UNIDADES } from './unidades'
 import { inferirMetrica } from './metrica'
+import { hashSemilla } from './aleatorio'
 import {
   CONJUNTO_POR_ID, CENTRO, SUBCENTRO, ESCUELA, DIRECCION, ORGANISMO, RECINTO,
   type ConjuntoTextos,
@@ -32,11 +33,30 @@ export function conjuntoDe(unidadId: string, tipo: string): ConjuntoTextos {
   }
 }
 
+// Recorta la lista genérica a un tramo propio de la unidad: entre 6 y 10
+// nombres por categoría, empezando en un desplazamiento también derivado del
+// id (con vuelta al inicio). Sin esto, las 158 unidades tenían exactamente
+// 20 indicadores y el "% en meta" solo podía caer en múltiplos de 5: en la
+// tabla territorial, 35 unidades repartidas entre ~6 valores posibles se
+// veían clonadas. Con denominadores de 12 a 20, cada unidad da una cifra
+// propia (76.9%, 70.6%, 84.2%...). Las unidades con texto transcrito del
+// documento fuente NO se recortan: su lista es la real.
+function tramo(nombres: string[], unidadId: string, categoria: string): string[] {
+  const n = 6 + (hashSemilla(`${unidadId}::${categoria}::n`) % 5)
+  const inicio = hashSemilla(`${unidadId}::${categoria}::o`) % nombres.length
+  return Array.from({ length: Math.min(n, nombres.length) },
+    (_, i) => nombres[(inicio + i) % nombres.length])
+}
+
 export const INDICADORES: Indicador[] = UNIDADES.flatMap(u => {
   const c = conjuntoDe(u.id, u.tipo)
+  // La Sede Central usa el set genérico de recinto (sin bloque propio en
+  // el documento fuente): se recorta como cualquier genérica.
+  const conTextoPropio = CONJUNTO_POR_ID[u.id] !== undefined
 
-  const construir = (nombres: string[], categoria: CategoriaIndicador) =>
-    nombres.map((plantilla, i): Indicador => {
+  const construir = (lista: string[], categoria: CategoriaIndicador) => {
+    const nombres = conTextoPropio ? lista : tramo(lista, u.id, categoria)
+    return nombres.map((plantilla, i): Indicador => {
       const nombre = plantilla.replace('{nombre}', u.nombre)
       return {
         id: `${u.id}::${categoria}::${i + 1}`,
@@ -46,6 +66,7 @@ export const INDICADORES: Indicador[] = UNIDADES.flatMap(u => {
         ...inferirMetrica(nombre),
       }
     })
+  }
 
   return [...construir(c.servicio, 'servicio'), ...construir(c.proceso, 'proceso')]
 })
