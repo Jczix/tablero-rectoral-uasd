@@ -67,4 +67,29 @@ describe('inferirMetrica', () => {
     expect(inferirMetrica('Porcentaje de recaudación efectiva').tipoMetrica)
       .toBe('porcentaje')
   })
+  it('reconoce el monto aunque haya palabras intercaladas (coincidencia por tokens)', () => {
+    // La subcadena literal 'fondos gestionados' no lo atrapaba porque
+    // "externos" se interpone, y es inequívocamente un monto.
+    expect(inferirMetrica('Fondos externos gestionados').tipoMetrica).toBe('moneda')
+    expect(inferirMetrica('Recursos propios gestionados').tipoMetrica).toBe('moneda')
+    expect(inferirMetrica('Montos desembolsados a proyectos').tipoMetrica).toBe('moneda')
+    expect(inferirMetrica('Desembolsos ejecutados').tipoMetrica).toBe('moneda')
+  })
+
+  it('la coincidencia por tokens es exacta: no arrastra plurales de otra palabra', () => {
+    // "Ejecuciones presupuestarias" cuenta ejecuciones; "Ejecución
+    // presupuestaria" es el monto. Sin token exacto, ambas caerían juntas.
+    expect(inferirMetrica('Ejecuciones presupuestarias monitoreadas').tipoMetrica)
+      .toBe('conteo')
+    expect(inferirMetrica('Ejecución presupuestaria administrativa').tipoMetrica)
+      .toBe('moneda')
+    // Y el orden importa: hace falta la palabra de gestión después del recurso.
+    expect(inferirMetrica('Gestión de fondos').tipoMetrica).toBe('conteo')
+  })
+
+  it('un nombre encabezado por un sustantivo contador es un conteo, no un monto', () => {
+    expect(inferirMetrica('Registros de desembolsos verificados').tipoMetrica)
+      .toBe('conteo')
+    expect(inferirMetrica('Informes de montos ejecutados').tipoMetrica).toBe('conteo')
+  })
 })
