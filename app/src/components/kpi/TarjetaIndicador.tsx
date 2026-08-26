@@ -1,6 +1,6 @@
 import type { Indicador, PuntoSerie, Tendencia } from '../../data/tipos'
 import { Semaforo } from './Semaforo'
-import { BarraBala } from './BarraBala'
+import { MedidorArco } from './MedidorArco'
 import { formatear } from './formato'
 
 const FLECHA: Record<Tendencia, { signo: string; etiqueta: string }> = {
@@ -23,24 +23,24 @@ export function TarjetaIndicador({ indicador, punto, onClic }: Props) {
         <span className="text-sm leading-snug text-white/80">{indicador.nombre}</span>
         <Semaforo estado={punto.semaforo} />
       </div>
-      <div className="mt-3 flex items-baseline gap-2">
-        <span className="text-3xl font-semibold tabular-nums">
-          {formatear(punto.valor, indicador.tipoMetrica)}
-        </span>
-        <span aria-label={flecha.etiqueta} className="text-sm text-white/70">
-          {flecha.signo}
-        </span>
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <div className="flex items-baseline gap-2">
+          <span className="text-3xl font-semibold tabular-nums">
+            {formatear(punto.valor, indicador.tipoMetrica)}
+          </span>
+          <span aria-label={flecha.etiqueta} className="text-sm text-white/70">
+            {flecha.signo}
+          </span>
+        </div>
+        {/* Medidor semicircular del avance contra la meta, en vez de una
+            barra: la forma exclusiva de las tarjetas de indicador. */}
+        <MedidorArco cumplimiento={punto.cumplimiento} semaforo={punto.semaforo} />
       </div>
       <div className="mt-1 flex items-center justify-between text-xs text-white/70">
         <span>{`Meta ${formatear(punto.meta, indicador.tipoMetrica)}`}</span>
         <span className="tabular-nums">{`${punto.cumplimiento.toFixed(1)}%`}</span>
       </div>
-      {/* Barra de progreso contra la meta en lugar del sparkline: el
-          historial vive en el diálogo de detalle; la tarjeta responde
-          "¿cuánto falta / cuánto sobra respecto a la meta?" de un vistazo. */}
-      <div className="mt-2">
-        <BarraBala valor={punto.valor} meta={punto.meta} semaforo={punto.semaforo} />
-      </div>
+
     </>
   )
 

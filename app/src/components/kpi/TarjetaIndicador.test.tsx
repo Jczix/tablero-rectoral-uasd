@@ -54,12 +54,11 @@ describe('TarjetaIndicador', () => {
   })
 })
 
-describe('TarjetaIndicador · barra contra la meta', () => {
-  it('muestra una barra bullet con la meta marcada, no un sparkline', () => {
+describe('TarjetaIndicador · medidor de arco', () => {
+  it('muestra un medidor semicircular, no una barra bullet', () => {
     const { container } = render(
       <TarjetaIndicador indicador={indicador} punto={punto} />)
-    expect(container.querySelector('[data-valor]')).toBeTruthy()
-    expect(container.querySelector('[data-meta]')).toBeTruthy()
-    expect(container.querySelector('polyline')).toBeNull()
+    expect(container.querySelector('[data-avance]')).toBeTruthy()
+    expect(container.querySelector('[data-valor]')).toBeNull()
   })
 })

@@ -4,7 +4,7 @@ import { mockDataSource as ds } from '../data/mock/MockDataSource'
 import { useFiltros } from '../state/FiltrosContext'
 import { TarjetaKPI } from '../components/kpi/TarjetaKPI'
 import { Semaforo } from '../components/kpi/Semaforo'
-import { BarraSemaforo } from '../components/kpi/BarraSemaforo'
+import { AnilloCumplimiento } from '../components/kpi/AnilloCumplimiento'
 import { MapaRD } from '../components/mapa/MapaRD'
 import { GraficoBarras } from '../components/graficos/GraficoBarras'
 import { FeedActividad } from '../components/marco/FeedActividad'
@@ -126,11 +126,14 @@ export function Rectoral() {
                   </span>
                   <Semaforo estado={f.semaforo} />
                 </div>
-                <div className="mt-1 text-3xl font-semibold tabular-nums">
-                  {f.cumplimiento.toFixed(1)}%
-                  <span className="ml-1 text-xs font-normal text-white/70">en meta</span>
+                {/* La dona reemplaza al número gigante + barra: es UN
+                    número resumen por vicerrectoría y el anillo se lee desde
+                    el otro lado de la oficina. La barra apilada queda como
+                    forma exclusiva de la rejilla de Nivel. */}
+                <div className="mt-2 flex justify-center">
+                  <AnilloCumplimiento porcentaje={f.cumplimiento}
+                    semaforo={f.semaforo} etiqueta="en meta" />
                 </div>
-                <div className="mt-2"><BarraSemaforo porSemaforo={f.porSemaforo} /></div>
               </button>
             ))}
           </div>

@@ -135,3 +135,11 @@ describe('Rectoral', () => {
     expect(eventos).toHaveLength(6)
   })
 })
+
+describe('Rectoral — las vicerrectorías llevan anillo, no barra apilada', () => {
+  it('cada tarjeta de vicerrectoría dibuja su dona y ninguna un segmento apilado', () => {
+    const { container } = render(<ProveedorFiltros><Rectoral /></ProveedorFiltros>)
+    expect(container.querySelectorAll('[data-arco]').length).toBe(4)
+    expect(container.querySelector('[data-segmento]')).toBeNull()
+  })
+})
